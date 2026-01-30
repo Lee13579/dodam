@@ -2,24 +2,15 @@
     "functions": {
         "src/app/api/recommend/route.ts": {
             "maxDuration": 60,
-            "memory": 1024,
-            "regions": [
-                "icn1"
-            ]
+            "memory": 1024
         },
         "src/app/api/analyze/route.ts": {
             "maxDuration": 60,
-            "memory": 1024,
-            "regions": [
-                "icn1"
-            ]
+            "memory": 1024
         },
         "src/app/api/generate/route.ts": {
             "maxDuration": 60,
-            "memory": 1024,
-            "regions": [
-                "icn1"
-            ]
+            "memory": 1024
         }
     }
 }
