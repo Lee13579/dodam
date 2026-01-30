@@ -18,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${gaegu.variable} ${jua.variable} font-gaegu antialiased`}>
+      <body className={`${inter.variable} ${gaegu.variable} ${jua.variable} font-inter antialiased`}>
         {children}
       </body>
     </html>

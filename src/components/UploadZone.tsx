@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface UploadZoneProps {
     onFileSelect: (file: File) => void;
+    selectedFile?: File | null;
 }
 
-export default function UploadZone({ onFileSelect }: UploadZoneProps) {
+export default function UploadZone({ onFileSelect, selectedFile }: UploadZoneProps) {
     const [dragActive, setDragActive] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
