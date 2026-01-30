@@ -13,28 +13,19 @@ export async function POST(req: NextRequest) {
         const base64Content = image.includes(",") ? image.split(",")[1] : image;
 
         const prompt = `
-      CRITICAL MISSION: DEEP SPATIAL ANALYSIS AND CREATIVE STYLING.
-      
-      You are a world-class pet fashion photographer and AI prompt engineer.
-      1. SPATIAL ANALYSIS: Detect the dog's body and face. Provide bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.
-      2. RECOMMENDATION: Invent 3 UNIQUE, highly realistic premium styling concepts tailored to this specific dog's appearance and "vibe".
+Pet fashion expert: analyze this dog photo and create 3 unique styling concepts.
 
-      OUTPUT REQUIREMENT: Return a SINGLE JSON object with a key named "concepts" which is an array of 3 objects.
+Return JSON with "concepts" array (3 objects):
+- id: "ai_1" to "ai_3"
+- name: Korean style name
+- description: Korean recommendation reason (2 sentences)
+- koreanAnalysis: Korean styling analysis (2-3 sentences, diary style)
+- customPrompt: English image-to-image prompt template: "Using the provided image of this dog, modify it into a photorealistic [shot type] where the dog is [action/wearing]. Scene: [environment]. [Lighting], [mood]. Preserve dog's unique features."
+- spatialAnalysis: {body: [y1,x1,y2,x2], face: [y1,x1,y2,x2]} (normalized 0-1000)
 
-      JSON STRUCTURE per Concept in the "concepts" array:
-      - "id": String (ai_1 to ai_3)
-      - "name": 감각적인 스타일 명칭 (한글)
-      - "description": 왜 이 스타일이 추천되는지 (한글, 따뜻한 문체)
-      - "koreanAnalysis": 결과 화면에 보여줄 2-3문장의 정교한 스타일링 분석 (한글, "이 친구의 ~한 특징과 ~한 배경이 어우러져..." 식의 일기/비평체)
-      - "customPrompt": For a native image-to-image editing model. 
-         Template: "Using the provided image of this dog, please modify it into a photorealistic [shot type] where the dog is [action] and wearing [DETAILED OUTFIT]. Set the scene in [ENVIRONMENT]. [LIGHTING], [MOOD]. The dog's face and unique features must remain a 1:1 match."
-      - "spatialAnalysis": { "body": [y1, x1, y2, x2], "face": [y1, x1, y2, x2] }
-
-      GUIDELINES:
-      - Be creative: Hanbok, Luxury suits, High-end knitwear, etc.
-      - Concepts must be distinct.
-      - Use ONLY JSON.
-    `;
+Styles: Hanbok, luxury suits, high-end fashion, etc. Be creative and distinct.
+Output ONLY valid JSON.
+`;
 
         // Use JSON mode
         const result = await geminiModel.generateContent({
