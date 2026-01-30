@@ -13,30 +13,27 @@ export async function POST(req: NextRequest) {
         const base64Content = image.includes(",") ? image.split(",")[1] : image;
 
         const prompt = `
-      Analyze this dog photo. Identify the breed, color, and unique "vibe" (e.g., goofy, noble, shy, tough).
+      CRITICAL MISSION: DEEP SPATIAL ANALYSIS AND CREATIVE STYLING.
       
-      Based on this analysis, **INVENT 5 DIFFERENT creative styling concepts** that would look amazing on this specific dog.
-      Each concept should have a DISTINCT theme. Use variety: Elegant, Funny, Tough, Cute, Trendy, Fantasy, etc.
-      
-      Examples of diverse concepts:
-      - "강남 힙합왕" (Hip-Hop King) - for a tough vibe
-      - "중세 기사단장" (Medieval Knight) - for a noble look
-      - "핑크 발레리나" (Pink Ballerina) - for a cute, elegant dog
-      - "우주 비행사" (Astronaut) - for a futuristic theme
-      - "숲속의 요정" (Forest Fairy) - for a mystical vibe
+      You are a world-class pet fashion photographer and AI prompt engineer.
+      1. SPATIAL ANALYSIS: Detect the dog's body and face. Provide bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000.
+      2. RECOMMENDATION: Invent 3 UNIQUE, highly realistic premium styling concepts tailored to this specific dog's appearance and "vibe".
 
-      CRITICAL: Return the response in JSON format with an array of 5 concepts.
-      {
-        "concepts": [
-          {
-            "id": "ai_1",
-            "name": "Concept Name (Korean, max 10 chars)",
-            "description": "Why this fits (Korean, witty, under 60 chars)",
-            "customPrompt": "Detailed description for image generator (English)"
-          },
-          ... (4 more concepts)
-        ]
-      }
+      OUTPUT REQUIREMENT: Return a SINGLE JSON object with a key named "concepts" which is an array of 3 objects.
+
+      JSON STRUCTURE per Concept in the "concepts" array:
+      - "id": String (ai_1 to ai_3)
+      - "name": 감각적인 스타일 명칭 (한글)
+      - "description": 왜 이 스타일이 추천되는지 (한글, 따뜻한 문체)
+      - "koreanAnalysis": 결과 화면에 보여줄 2-3문장의 정교한 스타일링 분석 (한글, "이 친구의 ~한 특징과 ~한 배경이 어우러져..." 식의 일기/비평체)
+      - "customPrompt": For a native image-to-image editing model. 
+         Template: "Using the provided image of this dog, please modify it into a photorealistic [shot type] where the dog is [action] and wearing [DETAILED OUTFIT]. Set the scene in [ENVIRONMENT]. [LIGHTING], [MOOD]. The dog's face and unique features must remain a 1:1 match."
+      - "spatialAnalysis": { "body": [y1, x1, y2, x2], "face": [y1, x1, y2, x2] }
+
+      GUIDELINES:
+      - Be creative: Hanbok, Luxury suits, High-end knitwear, etc.
+      - Concepts must be distinct.
+      - Use ONLY JSON.
     `;
 
         // Use JSON mode
@@ -45,13 +42,13 @@ export async function POST(req: NextRequest) {
                 {
                     role: "user",
                     parts: [
-                        { text: prompt },
                         {
                             inlineData: {
                                 data: base64Content,
                                 mimeType: image.match(/data:([^;]+);/)?.[1] || "image/jpeg",
                             },
                         },
+                        { text: prompt },
                     ],
                 },
             ],

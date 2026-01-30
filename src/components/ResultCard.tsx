@@ -14,19 +14,18 @@ export default function ResultCard({ originalImage, styledImages, analysis, dogN
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Original Image */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="relative group lg:col-span-1"
                 >
-                    <p className="absolute top-4 left-4 z-10 bg-slate-100/90 text-slate-900 text-xs font-bold px-3 py-1 rounded-full border border-slate-200 uppercase tracking-wider shadow-sm">
+                    <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg border border-white/20">
                         원본 사진
-                    </p>
+                    </div>
                     <img
                         src={originalImage}
                         alt="Original Dog"
-                        className="w-full h-96 object-cover rounded-3xl border border-slate-100 shadow-xl"
+                        className="w-full aspect-[3/4] object-cover rounded-[32px] border border-slate-100 shadow-2xl"
                     />
                 </motion.div>
 
@@ -45,7 +44,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, dogN
                                 <div className="bg-[#fff9c4] text-slate-800 px-4 py-3 shadow-lg rounded-sm border border-yellow-200/50 relative paper-texture">
                                     {/* Tape effect */}
                                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-4 bg-white/40 rotate-1 backdrop-blur-[1px] shadow-sm"></div>
-                                    <p className="font-gaegu text-xl leading-none">
+                                    <p className="font-outfit text-xl leading-none">
                                         {dogName ? `${dogName}의 인생샷 📸` : "우리아이 인생샷 📸"} <br />
                                         <span className="text-sm text-slate-500 font-sans font-normal not-italic mt-1 block">Dodam Style No.{index + 1}</span>
                                     </p>
@@ -75,7 +74,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, dogN
                 transition={{ delay: 0.4 }}
                 className="glass-card p-8 rounded-3xl border border-slate-100 bg-slate-50/30"
             >
-                <h3 className="text-2xl font-bold mb-4 flex items-center text-slate-900 font-jua">
+                <h3 className="text-2xl font-bold mb-4 flex items-center text-slate-900 font-outfit">
                     <ZoomIn className="w-6 h-6 mr-2 text-indigo-500" /> 스타일링 분석
                 </h3>
                 <p className="text-slate-600 leading-relaxed italic text-lg whitespace-pre-line">

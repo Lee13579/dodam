@@ -113,7 +113,7 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
                             <X className="w-5 h-5" />
                         </button>
                         <div className="mt-4 flex items-center text-indigo-600 text-sm font-bold">
-                            <ImageIcon className="w-4 h-4 mr-2" /> 사진이 성공적으로 업로드되었습니다
+                            <ImageIcon className="w-4 h-4 mr-2" /> 사진이 성공적으로 등록되었습니다
                         </div>
                     </motion.div>
                 )}

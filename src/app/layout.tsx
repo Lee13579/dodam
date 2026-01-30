@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Gaegu, Jua } from "next/font/google";
+import { Outfit, IBM_Plex_Sans_KR } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const gaegu = Gaegu({ weight: ["400", "700"], subsets: ["latin"], variable: "--font-gaegu" });
-const jua = Jua({ weight: ["400"], subsets: ["latin"], variable: "--font-jua" });
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: 'swap',
+});
+
+const ibmPlexSansKR = IBM_Plex_Sans_KR({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-ibm-plex",
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "도담 도담 | 우리 아이의 새로운 스타일 시각화",
@@ -18,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${gaegu.variable} ${jua.variable} font-inter antialiased`}>
+      <body className={`${outfit.variable} ${ibmPlexSansKR.variable} font-ibm-plex antialiased`}>
         {children}
       </body>
     </html>

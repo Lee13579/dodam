@@ -18,6 +18,7 @@ export default function StylingWorkflow() {
     const [dogName, setDogName] = useState("");
     const [customPrompt, setCustomPrompt] = useState("");
 
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [results, setResults] = useState<{
         originalImage: string;
         styledImages: string[];
@@ -35,58 +36,97 @@ export default function StylingWorkflow() {
         });
     };
 
+    const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string; koreanAnalysis: string }>>([]);
+    const [regenerating, setRegenerating] = useState(false);
+
+    const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new window.Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxWidth) {
+                            width *= maxWidth / height;
+                            height = maxWidth;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL("image/jpeg", 0.8));
+                };
+            };
+        });
+    };
+
     const handleStartAnalysis = async () => {
         if (!file || !style) return;
         setLoading(true);
 
         try {
-            // 1. Analyze with Gemini
-            setLoadingStep("강아지의 특징을 분석 중입니다...");
-            const base64 = await fileToBase64(file);
+            const dispName = dogName ? `${dogName}` : "우리 아이";
+            const base64 = await resizeImage(file);
 
-            // If custom style OR AI-generated style, pass the custom prompt
-            let stylePayload = style;
-            let isCustomPayload = false;
+            let generationPrompt = "";
+            let analysis = "";
 
-            if (style === 'custom') {
-                stylePayload = customPrompt;
-                isCustomPayload = true;
-            } else if (style.startsWith('ai_') && recommendations.length > 0) {
-                const selectedConcept = recommendations.find(c => c.id === style);
-                if (selectedConcept) {
-                    stylePayload = selectedConcept.customPrompt;
-                    isCustomPayload = true;
+            // Check if it's an AI-generated style or a custom style
+            const selectedAiConcept = recommendations.find(c => c.id === style);
+
+            if (selectedAiConcept) {
+                // SKIP REDUNDANT ANALYSIS: Use pre-calculated prompt and analysis from Step 1
+                generationPrompt = selectedAiConcept.customPrompt;
+                analysis = selectedAiConcept.koreanAnalysis;
+                setLoadingStep(`${dispName}의 스타일을 정교하게 다듬는 중...`);
+            } else if (style === 'custom') {
+                // Only analyze if it's a completely new custom prompt
+                setLoadingStep(`${dispName}의 보석 같은 매력을 발견하는 중...`);
+                const analyzeRes = await fetch("/api/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: base64, style: customPrompt, isCustom: true }),
+                });
+                const analyzeData = await analyzeRes.json();
+
+                if (analyzeRes.status !== 200) {
+                    const errorMessage = analyzeData.details ? `${analyzeData.error}: ${analyzeData.details}` : analyzeData.error;
+                    throw new Error(errorMessage);
                 }
+
+                generationPrompt = analyzeData.generationPrompt;
+                analysis = analyzeData.analysis;
+            } else {
+                // Fallback for any other cases
+                throw new Error("Invalid style selection");
             }
 
-            const analyzeRes = await fetch("/api/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: base64, style: stylePayload, isCustom: isCustomPayload }),
-            });
-            const analyzeData = await analyzeRes.json();
-
-            if (analyzeRes.status !== 200) {
-                const errorMessage = analyzeData.details ? `${analyzeData.error}: ${analyzeData.details}` : analyzeData.error;
-                throw new Error(errorMessage);
-            }
-
-            const { analysis, generationPrompt } = analyzeData;
-
-            // 2. Generate Image with Gemini
-            setLoadingStep("새로운 스타일을 시각화 중입니다...");
+            // Generate Image with Gemini
+            setLoadingStep(`${dispName}만의 특별한 변신을 그리는 중...`);
             const generateRes = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: generationPrompt }),
+                body: JSON.stringify({ prompt: generationPrompt, image: base64 }),
             });
             const generateData = await generateRes.json();
 
             if (generateRes.status !== 200) throw new Error(generateData.error);
 
-            // 3. Fetch Partner Products
-            setLoadingStep("추천 정보를 불러오는 중입니다...");
-            // For custom style, maybe default to 'Teddy Bear' or general recommendation for now
+            // Fetch Partner Products
+            setLoadingStep("거의 다 됐어요! 반짝이는 모습을 준비 중...");
             const productStyleId = style === 'custom' ? 'Teddy Bear' : style;
             const partnersRes = await fetch(`/api/partners?styleId=${productStyleId}`);
             const productsData = await partnersRes.json();
@@ -108,16 +148,15 @@ export default function StylingWorkflow() {
         }
     };
 
-    const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string }>>([]);
-    const [regenerating, setRegenerating] = useState(false);
-
     const handleStep1Submit = async () => {
         if (!file) return;
-        setStep(2);
+        setLoading(true);
+        const dispName = dogName ? `${dogName}` : "우리 아이";
+        setLoadingStep(`${dispName}의 매력 포인트를 찾는 중...`);
 
-        // Silently fetch recommendations
         try {
-            const base64 = await fileToBase64(file);
+            const base64 = await resizeImage(file);
+            setPreviewUrl(base64);
             const res = await fetch("/api/recommend", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -127,8 +166,14 @@ export default function StylingWorkflow() {
             if (res.ok && data.concepts) {
                 setRecommendations(data.concepts);
             }
+            setStep(2);
         } catch (e) {
             console.error("Recommendation failed:", e);
+            // Even if recommendation fails, we move to step 2 so user can at least use custom style
+            setStep(2);
+        } finally {
+            setLoading(false);
+            setLoadingStep("");
         }
     };
 
@@ -137,7 +182,7 @@ export default function StylingWorkflow() {
         setRegenerating(true);
 
         try {
-            const base64 = await fileToBase64(file);
+            const base64 = await resizeImage(file);
             const res = await fetch("/api/recommend", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -155,7 +200,7 @@ export default function StylingWorkflow() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto py-12 px-6">
+        <div className="max-w-7xl mx-auto py-12 px-6">
             {/* Progress Stepper */}
             {step < 3 && (
                 <div className="flex justify-between mb-12 relative max-w-xs mx-auto">
@@ -163,7 +208,7 @@ export default function StylingWorkflow() {
                     {[1, 2].map((s) => (
                         <div
                             key={s}
-                            className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${step >= s ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-100 text-slate-400"
+                            className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${step >= s ? "bg-pink-500 text-white shadow-lg shadow-pink-200" : "bg-slate-100 text-slate-400"
                                 }`}
                         >
                             {s}
@@ -182,7 +227,7 @@ export default function StylingWorkflow() {
                         className="space-y-8"
                     >
                         <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-bold text-slate-900 font-jua">사진 업로드</h2>
+                            <h2 className="text-3xl font-bold text-slate-900 font-outfit">사진 업로드</h2>
                             <p className="text-slate-500">사랑스러운 아이의 사진을 선택해주세요</p>
                         </div>
 
@@ -190,7 +235,7 @@ export default function StylingWorkflow() {
 
                         {file && (
                             <div className="max-w-md mx-auto">
-                                <label className="block text-sm font-medium text-slate-700 mb-2 font-jua text-lg">
+                                <label className="block text-sm font-medium text-slate-700 mb-2 font-outfit text-lg">
                                     강아지 이름 (선택)
                                 </label>
                                 <input
@@ -206,10 +251,16 @@ export default function StylingWorkflow() {
                         <div className="flex justify-center pt-4">
                             <button
                                 onClick={handleStep1Submit}
-                                disabled={!file}
-                                className="styled-button px-12 py-4 text-lg border-2 border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={!file || loading}
+                                className="styled-button px-12 py-4 text-lg border-2 border-pink-500 rounded-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                             >
-                                스타일 선택하러 가기
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 animate-spin" /> {loadingStep}
+                                    </>
+                                ) : (
+                                    "스타일 선택하러 가기"
+                                )}
                             </button>
                         </div>
                     </motion.div>
@@ -223,9 +274,18 @@ export default function StylingWorkflow() {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-8"
                     >
-                        <div className="text-center space-y-2">
-                            <h2 className="text-3xl font-bold text-slate-900 font-jua">스타일 선택</h2>
+                        <div className="text-center space-y-4">
+                            <h2 className="text-3xl font-bold text-slate-900 font-outfit">스타일 선택</h2>
                             <p className="text-slate-500">어떤 모습으로 변신해볼까요?</p>
+
+                            {/* Original Dog Preview */}
+                            {previewUrl && (
+                                <div className="flex justify-center">
+                                    <div className="relative w-64 h-64 rounded-[40px] overflow-hidden border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
+                                        <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <StyleSelector
@@ -243,7 +303,7 @@ export default function StylingWorkflow() {
                                 animate={{ opacity: 1, height: 'auto' }}
                                 className="max-w-2xl mx-auto space-y-3"
                             >
-                                <label className="block text-lg font-bold text-slate-800 font-jua">
+                                <label className="block text-lg font-bold text-slate-800 font-outfit">
                                     ✨ 나만의 스타일을 설명해주세요
                                 </label>
                                 <textarea
@@ -258,26 +318,40 @@ export default function StylingWorkflow() {
                         <div className="flex justify-center gap-4 pt-8">
                             <button
                                 onClick={() => setStep(1)}
-                                className="px-8 py-4 rounded-full font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+                                className="px-8 py-4 rounded-full font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition-colors font-outfit"
                             >
-                                <ArrowLeft className="w-5 h-5 inline-block mr-2" />
                                 이전으로
                             </button>
-                            <button
-                                onClick={handleStartAnalysis}
-                                disabled={!style || (style === 'custom' && !customPrompt.trim()) || loading}
-                                className="styled-button px-12 py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-indigo-200"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="mr-2 animate-spin" /> {loadingStep}
-                                    </>
-                                ) : (
-                                    <>
-                                        스타일 적용하기 <Stars className="ml-2 w-5 h-5" />
-                                    </>
-                                )}
-                            </button>
+
+                            {!style ? (
+                                <button
+                                    onClick={handleRegenerate}
+                                    disabled={regenerating}
+                                    className="px-12 py-4 rounded-full font-bold text-pink-500 border border-pink-500 hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm font-outfit text-lg"
+                                >
+                                    {regenerating ? (
+                                        <>
+                                            <Loader2 className="mr-2 animate-spin" /> 스타일 찾는 중...
+                                        </>
+                                    ) : (
+                                        "다른 스타일 보기"
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleStartAnalysis}
+                                    disabled={loading || (style === 'custom' && !customPrompt.trim())}
+                                    className="px-12 py-4 rounded-full font-bold text-pink-500 border border-pink-500 hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-sm font-outfit text-lg"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader2 className="mr-2 animate-spin" /> {loadingStep}
+                                        </>
+                                    ) : (
+                                        "스타일 적용하기"
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -293,7 +367,7 @@ export default function StylingWorkflow() {
                             <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">스타일링 결과</h2>
                             <button
                                 onClick={() => setStep(1)}
-                                className="flex items-center text-indigo-600 hover:text-indigo-700 transition-colors font-bold"
+                                className="flex items-center text-pink-500 hover:text-pink-600 transition-colors font-bold"
                             >
                                 <ArrowLeft className="mr-2 w-5 h-5" /> 다른 스타일 시도하기
                             </button>
@@ -306,7 +380,7 @@ export default function StylingWorkflow() {
                             dogName={results.dogName}
                         />
 
-                        <div className="mt-16 pt-16 border-t border-slate-100">
+                        <div className="mt-8 pt-8 border-t border-slate-100">
                             <ProductRecommendation products={products} />
                         </div>
                     </motion.div>

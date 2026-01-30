@@ -3,25 +3,27 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     try {
-        const { prompt } = await req.json();
+        const { prompt, image } = await req.json();
 
-        if (!prompt) {
-            return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+        if (!prompt || !image) {
+            return NextResponse.json({ error: "Prompt and image are required" }, { status: 400 });
         }
 
-        // Add extra style guidance for better results
-        // Gemini Image (Imagen) doesn't support aspectRatio/negativePrompt in config yet via generic API, so we put it in prompt.
-        const negativePrompt = "bad anatomy, extra legs, extra paws, deformed, blurry, ugly, text, watermark, signature";
-        const enhancedPrompt = `${prompt} 
-        
-        photorealistic, high-end grooming studio background, cinematic lighting.
-        Aspect Ratio: 3:4 Portrait.
-        
-        Negative prompt: ${negativePrompt}`;
+        const base64Content = image.includes(",") ? image.split(",")[1] : image;
+        const mimeType = image.match(/data:([^;]+);/)?.[1] || "image/jpeg";
 
-        // Generate 2 images in parallel
+        // Generate 2 images in parallel using native Image-to-Image editing
         const generationTasks = [1, 2].map(async () => {
-            const result = await geminiImageModel.generateContent(enhancedPrompt);
+            const result = await geminiImageModel.generateContent([
+                { text: prompt },
+                {
+                    inlineData: {
+                        data: base64Content,
+                        mimeType: mimeType
+                    }
+                }
+            ]);
+
             const response = await result.response;
             const candidate = response.candidates?.[0];
 
@@ -40,8 +42,8 @@ export async function POST(req: NextRequest) {
         const urls = await Promise.all(generationTasks);
 
         return NextResponse.json({ urls });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Gemini Image Generation Error:", error);
-        return NextResponse.json({ error: "Generation failed" }, { status: 500 });
+        return NextResponse.json({ error: "Generation failed", details: error.message }, { status: 500 });
     }
 }

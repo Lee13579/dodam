@@ -34,26 +34,40 @@ export async function POST(req: NextRequest) {
         }
 
         const prompt = `
-      Analyze this dog photo. Identify the breed, color, and *unique* facial features. 
-      Focus on specific details that make this dog look like itself: messy fur, asymmetric markings, specific eye shape, nose texture, and emotional expression.
-
-      Then, describe how this dog would look if it were wearing an outfit based on the style instruction below.
+      CRITICAL MISSION: EXTREME REALISM, IDENTITY PRESERVATION, AND NARRATIVE STYLING.
       
+      You are a world-class pet fashion photographer and image editor. 
+      Your task is to analyze the provided dog photo using spatial understanding and generate a RE-STYLING INSTRUCTION for a native image editing model.
+
+      TARGET STYLE DIRECTIVE:
       ${styleInstruction}
 
-      Provide a concise prompt (under 600 characters) for an AI image generator to create a high-quality, photorealistic image of THIS EXACT DOG.
-      
-      CRITICAL INSTRUCTION - BALANCE IS KEY:
-      - **IDENTITY (Top Priority)**: The dog's face, messy/natural fur texture, and unique imperfections MUST match the original photo exactly. Do not "fix" or genericize the dog.
-      - **ATMOSPHERE (Cool Factor)**: While keeping the dog authentic, upgrade the *lighting, background, and composition* to be cinematic and high-end. 
-      - **GOAL**: "The exact same dog (messy hair and all), but appearing in a luxury magazine shoot."
-      
-      The dog should be posing naturally in a high-end, bright, minimalist studio.
-      KEYWORD: Best shot, Award winning photography, 8k resolution, Soft studio lighting, Golden Hour, Emotional connection, Shot on Sony A7R V, 85mm f/1.2 GM, Bokeh, Highly detailed fur texture.
-      
-      CRITICAL: The "analysis" field in the return JSON MUST BE IN KOREAN.
-      
-      Return the response in JSON format: { "analysis": "아이의 새로운 룩에 대한 매력적인 설명 (한국어)...", "generationPrompt": "Image generation prompt in English..." }
+      1. SPATIAL ANALYSIS: 
+      - Detect the dog in the image. 
+      - Provide bounding boxes [ymin, xmin, ymax, xmax] normalized to 0-1000 for:
+        * The overall dog body
+        * The dog's face/head
+      - Use these coordinates to focus your analysis on the subject.
+
+      2. ANALYZE (Internal): 
+      - Study the dog's EXACT facial proportions, eye depth, unique markings, and fur texture within the detected face area.
+
+      3. GENERATE EDITING PROMPT (English):
+      - Use the "Image-to-Image Editing" format.
+      - Template: "Using the provided image of this dog, please modify it into a photorealistic [shot type] where the dog is [action/expression] and wearing [OUTFIT DESCRIPTION]. Set the scene in [THEMATIC ENVIRONMENT]. The scene should be illuminated by [LIGHTING], creating a [MOOD] atmosphere. Emphasize [KEY TEXTURES/DETAILS]."
+      - MANDATORY: The re-styling MUST strictly follow the "TARGET STYLE DIRECTIVE" above. If it says "Hanbok", the dog MUST be wearing a traditional or modern Hanbok.
+      - NO KEYWORD LISTS: Write a natural, descriptive narrative paragraph.
+
+      4. ANALYSIS (Korean):
+      - Write a warm, professional styling critique in Korean.
+      - DO NOT mention breeds.
+      - Explain how the chosen style (e.g., Hanbok, Suit, etc.) harmonizes with the dog's features.
+
+      Return ONLY JSON: { 
+        "analysis": "...", 
+        "generationPrompt": "...", 
+        "spatialAnalysis": { "body": [y1, x1, y2, x2], "face": [y1, x1, y2, x2] } 
+      }
     `;
 
         // Use JSON mode for more reliable parsing
@@ -62,13 +76,13 @@ export async function POST(req: NextRequest) {
                 {
                     role: "user",
                     parts: [
-                        { text: prompt },
                         {
                             inlineData: {
                                 data: base64Content,
                                 mimeType: image.match(/data:([^;]+);/)?.[1] || "image/jpeg",
                             },
                         },
+                        { text: prompt },
                     ],
                 },
             ],

@@ -32,12 +32,13 @@ export default function ProductRecommendation({ products }: ProductRecommendatio
                     >
                         <div className="h-48 bg-slate-50 relative overflow-hidden">
                             <div className="absolute top-3 left-3 z-10 bg-white/90 shadow-sm text-[10px] font-bold px-2 py-1 rounded text-slate-500 uppercase">
-                                {product.category === "Grooming" ? "미용/케어" : "액세서리"}
+                                {product.category === "Clothing" ? "의류/패션" : product.category === "Grooming" ? "미용/케어" : "액세서리"}
                             </div>
-                            {/* Fallback pattern instead of missing image */}
-                            <div className="absolute inset-0 bg-linear-to-br from-indigo-50 to-pink-50 flex items-center justify-center">
-                                <ShoppingCart className="w-12 h-12 text-slate-200" />
-                            </div>
+                            <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
                         </div>
 
                         <div className="p-6">
