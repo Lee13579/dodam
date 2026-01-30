@@ -309,7 +309,7 @@ export default function StylingWorkflow() {
                                 <textarea
                                     value={customPrompt}
                                     onChange={(e) => setCustomPrompt(e.target.value)}
-                                    placeholder="예: 핑크색 발레복을 입은 발레리나, 우주비행사, 호그와트 교복... 상상하는 무엇이든 적어주세요!"
+                                    placeholder="예: 전통 한복을 입은 모습, 턱시도를 입은 신사, 하와이안 셔츠를 입고 해변에서... 상상하는 무엇이든 적어주세요!"
                                     className="w-full h-32 px-5 py-4 rounded-2xl border-2 border-indigo-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none resize-none text-lg placeholder:text-slate-300"
                                 />
                             </motion.div>
