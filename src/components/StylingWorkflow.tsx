@@ -39,7 +39,7 @@ export default function StylingWorkflow() {
     const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string; koreanAnalysis: string }>>([]);
     const [regenerating, setRegenerating] = useState(false);
 
-    const resizeImage = (file: File, maxWidth = 768): Promise<string> => {
+    const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -67,7 +67,7 @@ export default function StylingWorkflow() {
                     canvas.height = height;
                     const ctx = canvas.getContext("2d");
                     ctx?.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.75));
+                    resolve(canvas.toDataURL("image/jpeg", 0.8));
                 };
             };
         });
