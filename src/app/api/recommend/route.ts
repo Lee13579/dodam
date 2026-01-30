@@ -17,13 +17,15 @@ Pet fashion expert: analyze this dog photo and create 3 unique styling concepts.
 
 Return JSON with "concepts" array (3 objects):
 - id: "ai_1" to "ai_3"
-- name: Korean style name
-- description: Korean recommendation reason (2 sentences)
-- koreanAnalysis: Korean styling analysis (2-3 sentences, diary style)
+- name: Korean style name (Korean only; no English/roman characters)
+- description: Korean recommendation reason (2 sentences, Korean only; no English/roman characters)
+- koreanAnalysis: Korean styling analysis (2-3 sentences, diary style, Korean only; no English/roman characters)
 - customPrompt: English image-to-image prompt template: "Using the provided image of this dog, modify it into a photorealistic [shot type] where the dog is [action/wearing]. Scene: [environment]. [Lighting], [mood]. Preserve dog's unique features."
 - spatialAnalysis: {body: [y1,x1,y2,x2], face: [y1,x1,y2,x2]} (normalized 0-1000)
 
-Styles: Hanbok, luxury suits, high-end fashion, etc. Be creative and distinct.
+Style guidance: Pick 3 wildly different, dog-appropriate styles that best fit the photo (breed, coat, pose, mood). Keep all concepts clearly dog-centric (canine activities, dog-friendly outfits, pet-safe props). Avoid human-only costumes or unsafe items. Do not lock to any preset list or theme families; invent the best three for the specific photo.
+Important: Concepts must be mutually distinct with no overlap in clothing, setting, or mood.
+Important: For name/description/koreanAnalysis, output must be Korean only with no English letters, romanization, or mixed-language text. The only English allowed anywhere in the response is inside customPrompt.
 Output ONLY valid JSON.
 `;
 
