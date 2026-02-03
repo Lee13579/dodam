@@ -13,39 +13,39 @@ export default function Hero() {
                 <div className="absolute bottom-20 right-10 w-32 h-32 bg-orange-200 rounded-full blur-3xl animate-pulse-soft" />
             </div>
 
-            <div className="container mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="container mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-12 items-center pt-20 lg:pt-0">
                 <motion.div
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.8 }}
-                    className="text-left"
+                    className="text-center lg:text-left"
                 >
-                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-pink-50 border border-pink-100 text-pink-600 text-sm font-medium mb-6 shadow-sm">
-                        <Heart className="w-4 h-4 mr-2 fill-pink-600" /> 반려견 맞춤형 프리미엄 스타일링
+                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-pink-50 border border-pink-100 text-pink-600 text-xs md:text-sm font-medium mb-6 shadow-sm">
+                        <Heart className="w-3.5 h-3.5 mr-2 fill-pink-600" /> 반려견 맞춤형 프리미엄 스타일링
                     </div>
 
-                    <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-8 text-[#2d241a] font-outfit leading-tight">
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8 text-[#2d241a] font-outfit leading-[1.1]">
                         우리 아이 <br />
                         <span className="text-pink-500">도담하개</span> <br />
                         예쁘개
                     </h1>
 
-                    <p className="max-w-xl text-xl text-[#5d4d3d] mb-10 leading-relaxed">
-                        사랑스러운 반려견의 사진 한 장으로 완성되는 스타일 변신! <br />
-                        도담이 제안하는 세련된 컷과 <br />
+                    <p className="max-w-xl mx-auto lg:mx-0 text-base md:text-xl text-[#5d4d3d] mb-8 md:mb-10 leading-relaxed px-4 lg:px-0">
+                        사랑스러운 반려견의 사진 한 장으로 완성되는 스타일 변신! <br className="hidden md:block" />
+                        도담이 제안하는 세련된 컷과 <br className="hidden md:block" />
                         어울리는 의상을 지금 바로 확인해 보세요.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-start justify-start gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => document.getElementById('styling')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="px-10 py-5 bg-pink-500 hover:bg-pink-400 text-white rounded-3xl font-bold text-xl flex items-center shadow-xl shadow-pink-100 transition-all font-outfit"
+                            className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-pink-500 hover:bg-pink-400 text-white rounded-3xl font-bold text-lg sm:text-xl flex items-center justify-center shadow-xl shadow-pink-100 transition-all font-outfit"
                         >
-                            스타일링 시작하기 <Scissors className="ml-3 w-6 h-6" />
+                            스타일링 시작하기 <Scissors className="ml-3 w-5 h-5 sm:w-6 sm:h-6" />
                         </motion.button>
-                        <button className="px-10 py-5 bg-white hover:bg-orange-50 border-2 border-orange-100 text-orange-600 rounded-3xl font-bold text-xl transition-all font-outfit">
+                        <button className="w-full sm:w-auto px-8 py-4 sm:px-10 sm:py-5 bg-white hover:bg-orange-50 border-2 border-orange-100 text-orange-600 rounded-3xl font-bold text-lg sm:text-xl transition-all font-outfit">
                             갤러리 보기
                         </button>
                     </div>

@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import GallerySlider from "@/components/GallerySlider";
 import StylingWorkflow from "@/components/StylingWorkflow";
+import Footer from "@/components/Footer";
 import { Smile, ShoppingBag, Heart, Scissors, Trophy } from "lucide-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -55,12 +56,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="py-12 bg-white text-[#8b7355] text-center border-t border-[#fff4e6]">
-        <div className="container mx-auto px-6">
-          <p className="font-outfit text-xl mb-2 text-[#2d241a]">도담</p>
-          <p className="opacity-60 text-sm">© 2026 도담. 모든 아이들이 행복했으면 좋겠어요.</p>
-        </div>
-      </footer>
+      <Footer />
     </main>
   );
 }

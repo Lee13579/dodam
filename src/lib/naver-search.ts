@@ -3,6 +3,7 @@ import proj4 from 'proj4';
 
 // 네이버 검색 API의 기본 URL
 const NAVER_SEARCH_URL = 'https://openapi.naver.com/v1/search/local.json';
+const NAVER_IMAGE_URL = 'https://openapi.naver.com/v1/search/image';
 
 // 좌표 변환 정의 (KATECH -> WGS84)
 // 네이버 OpenAPI의 mapx, mapy는 KATECH 좌표계(TM128)를 사용합니다.
@@ -31,6 +32,32 @@ export interface TransformedPlace {
   lng: number;
   description?: string;
   link?: string;
+  imageUrl?: string; // 이미지 URL 추가
+}
+
+export async function searchNaverImages(query: string): Promise<string | null> {
+  const clientId = process.env.NAVER_CLIENT_ID;
+  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) return null;
+
+  try {
+    const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(query)}&display=1&sort=sim&filter=medium`, {
+      method: 'GET',
+      headers: {
+        'X-Naver-Client-Id': clientId,
+        'X-Naver-Client-Secret': clientSecret,
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data.items[0]?.link || null;
+  } catch (error) {
+    console.error("Naver Image Search error:", error);
+    return null;
+  }
 }
 
 export async function searchNaverPlaces(query: string, display: number = 3): Promise<TransformedPlace[]> {
@@ -56,28 +83,39 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
     }
 
     const data = await response.json();
-    
+
     // 데이터 변환 및 HTML 태그 제거
-    return data.items.map((item: NaverPlace, index: number) => {
+    const places = await Promise.all(data.items.map(async (item: NaverPlace, index: number) => {
       // HTML 태그(<b> 등) 제거
       const cleanTitle = item.title.replace(/<[^>]*>?/gm, '');
-      
+
       // 좌표 변환 (String -> Number -> Project -> [lng, lat])
-      // 주의: proj4는 [경도(lng), 위도(lat)] 순서로 반환합니다.
       const [lng, lat] = proj4(KATECH, WGS84, [parseInt(item.mapx), parseInt(item.mapy)]);
 
+      // 이미지 검색 (병렬로 처리하거나 필요할 때만 호출하는 것이 좋지만, 여기서는 간단히 구현)
+      // 주의: 너무 많은 요청은 속도 저하를 유발하므로 상위 몇 개만 하거나 별도 처리가 나음.
+      // 일단 여기서는 이미지 검색을 수행하지 않고, 호출하는 쪽(Route Handler)에서 필요한 경우에만 enrichment 하도록 설계하는게 좋음.
+      // 하지만 편의상 display가 1(단건 최적화)일 땐 이미지도 가져오도록 해봅니다.
+      let imgUrl = null;
+      if (display <= 3) {
+        imgUrl = await searchNaverImages(cleanTitle);
+      }
+
       return {
-        id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`, // 유니크 ID 생성
+        id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
         name: cleanTitle,
         title: cleanTitle,
         category: formatCategory(item.category),
         address: item.roadAddress || item.address,
         lat: lat,
         lng: lng,
-        description: item.category, // 카테고리 상세 정보를 설명으로 사용
-        link: item.link
+        description: item.category,
+        link: item.link,
+        imageUrl: imgUrl || undefined
       };
-    });
+    }));
+
+    return places;
 
   } catch (error) {
     console.error("Naver Search Failed:", error);
