@@ -3,9 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Calendar, Stars, Trees, Loader2 } from 'lucide-react';
+import { Search, MapPin, Calendar, Stars, Trees, Loader2, Sparkles } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+// AI Placeholder Examples
+const AI_EXAMPLES = [
+    "수영장이 있는 조용한 펜션",
+    "대형견 입장이 가능한 바다 근처 숙소",
+    "아이와 뛰어놀 수 있는 넓은 잔디 마당",
+    "브런치가 맛있는 애견 동반 카페",
+    "포토존이 많은 감성적인 스테이"
+];
 
 export default function TravelLanding() {
     const router = useRouter();
@@ -18,9 +27,25 @@ export default function TravelLanding() {
     const [conditions, setConditions] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Trending State
     const [trendingPlaces, setTrendingPlaces] = useState<any[]>([]);
     const [isTrendingLoading, setIsTrendingLoading] = useState(true);
+    const [trendingTags, setTrendingTags] = useState<string[]>(["#제주도", "#양양", "#가평", "#서울"]);
+
+    // Popover States
+    const [showRegionPopover, setShowRegionPopover] = useState(false);
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [startDate, setStartDate] = useState<Date | null>(new Date());
+    const [endDate, setEndDate] = useState<Date | null>(new Date(Date.now() + 86400000)); // Default 1 night 2 days
+
+    // AI Placeholder Cycle
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPlaceholderIndex((prev) => (prev + 1) % AI_EXAMPLES.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Hero Slider State
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -47,6 +72,12 @@ export default function TravelLanding() {
                 if (res.ok) {
                     const data = await res.json();
                     setTrendingPlaces(data);
+
+                    // Extract dynamic tags from trending data categories/regions
+                    if (data.length > 0) {
+                        const tags = Array.from(new Set(data.map((p: any) => `#${p.address?.split(' ')[0] || p.title.split(' ')[0]}`))).slice(0, 4);
+                        if (tags.length > 0) setTrendingTags(tags as string[]);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to fetch trending", e);
@@ -58,8 +89,12 @@ export default function TravelLanding() {
     }, []);
 
     const handleSearch = () => {
+        const diffTime = Math.abs((endDate?.getTime() || 0) - (startDate?.getTime() || 0));
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const finalDays = diffDays === 0 ? '당일 여행' : `${diffDays}박 ${diffDays + 1}일`;
+
         const params = new URLSearchParams({
-            days,
+            days: finalDays,
             people,
             dogs,
             region: region || '서울',
@@ -69,7 +104,7 @@ export default function TravelLanding() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#fffdfa] relative overflow-x-hidden text-[#2d241a]">
+        <div className="flex flex-col min-h-screen bg-[#fffdfa] relative overflow-x-hidden text-[#2d241a] [scrollbar-gutter:stable]">
             {/* Site Header */}
             <Header />
 
@@ -77,10 +112,10 @@ export default function TravelLanding() {
             <div className="h-[73px] md:h-[80px]" />
 
             {/* 1. HERO SECTION (With Slider) */}
-            <section className="relative bg-[#2d241a] text-white py-24 md:py-32 overflow-hidden">
+            <section className="relative bg-[#2d241a] text-white py-24 md:py-32">
                 {/* Hero Background Slider */}
                 <AnimatePresence>
-                    <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 z-0 overflow-hidden">
                         {heroImages.map((img, index) => (
                             <motion.div
                                 key={index}
@@ -110,80 +145,271 @@ export default function TravelLanding() {
                         소중한 우리 아이를 위한 최적의 여행지를 추천합니다.
                     </p>
 
-                    <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-[40px] p-8 shadow-2xl max-w-4xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <div className="space-y-2 text-left">
-                                <label className="text-xs font-bold text-white/90 uppercase ml-2">지역</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 w-5 h-5" />
+                    <div className="bg-white/20 backdrop-blur-2xl border border-white/30 rounded-[40px] p-8 shadow-2xl max-w-5xl mx-auto">
+                        <div className="flex flex-col md:flex-row gap-4 mb-6 items-end">
+                            <div className="flex-[1.2] min-w-0 space-y-2 text-left w-full md:w-auto">
+                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">지역</label>
+                                <div className="relative group">
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 w-5 h-5 group-hover:text-pink-400 transition-colors" />
                                     <input
                                         type="text"
                                         value={region}
                                         onChange={e => setRegion(e.target.value)}
-                                        placeholder="예: 강남, 제주"
-                                        className="w-full bg-white/15 border border-white/20 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-white/60 focus:bg-white/25 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all font-bold"
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                        onFocus={() => {
+                                            setShowRegionPopover(true);
+                                            setShowCalendar(false);
+                                        }}
+                                        placeholder="어디로 갈까요?"
+                                        className="w-full bg-white/10 border border-white/20 rounded-2xl h-[64px] pl-12 pr-4 text-white placeholder-white/70 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all font-bold text-base"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                setShowRegionPopover(false);
+                                                handleSearch();
+                                            }
+                                        }}
                                     />
+
+                                    {/* Modern Region Popover */}
+                                    <AnimatePresence>
+                                        {showRegionPopover && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={() => setShowRegionPopover(false)}
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                                                    className="absolute top-full mt-4 left-0 z-50 bg-white/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/20 rounded-[32px] p-6 w-[320px] md:w-[400px]"
+                                                >
+                                                    <div className="space-y-6">
+                                                        <div>
+                                                            <h5 className="text-[11px] font-black text-stone-400 uppercase tracking-widest mb-4 ml-1">추천 여행지</h5>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {isTrendingLoading ? (
+                                                                    Array.from({ length: 6 }).map((_, i) => (
+                                                                        <div key={i} className="h-20 bg-stone-50 animate-pulse rounded-2xl" />
+                                                                    ))
+                                                                ) : (
+                                                                    trendingPlaces.slice(0, 6).map((item) => {
+                                                                        const name = item.address?.split(' ')[0] || item.title.split(' ')[0];
+                                                                        const desc = item.customDesc || item.category;
+                                                                        return (
+                                                                            <button
+                                                                                key={item.id || item.title}
+                                                                                onClick={() => {
+                                                                                    setRegion(name);
+                                                                                    setShowRegionPopover(false);
+                                                                                }}
+                                                                                className="flex flex-col items-start p-4 rounded-2xl hover:bg-[#ff3253]/5 border border-stone-50 hover:border-[#ff3253]/20 transition-all group text-left"
+                                                                            >
+                                                                                <span className="font-black text-[#2d241a] text-base mb-1">{name}</span>
+                                                                                <span className="text-[10px] text-stone-400 font-bold leading-tight line-clamp-1">{desc}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="pt-4 border-t border-stone-100">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setRegion('내 주변');
+                                                                    setShowRegionPopover(false);
+                                                                }}
+                                                                className="w-full flex items-center justify-center gap-2 py-3 bg-stone-50 hover:bg-stone-100 rounded-xl text-[#2d241a] font-bold text-sm transition-colors"
+                                                            >
+                                                                <MapPin size={14} className="text-[#ff3253]" />
+                                                                현재 내 주변 찾기
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
-                            <div className="space-y-2 text-left">
-                                <label className="text-xs font-bold text-white/90 uppercase ml-2">기간</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 w-5 h-5" />
-                                    <select
-                                        value={days}
-                                        onChange={e => setDays(e.target.value)}
-                                        className="w-full bg-white/15 border border-white/20 rounded-2xl py-4 pl-12 pr-4 text-white focus:bg-white/25 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all font-bold appearance-none cursor-pointer"
-                                    >
-                                        <option className="text-black">당일 여행</option>
-                                        <option className="text-black">1박 2일</option>
-                                        <option className="text-black">2박 3일</option>
-                                    </select>
+                            <div className="flex-[1.3] min-w-0 space-y-2 text-left relative w-full md:w-auto">
+                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">기간</label>
+                                <div
+                                    onClick={() => setShowCalendar(!showCalendar)}
+                                    className="relative cursor-pointer group"
+                                >
+                                    <div className="w-full bg-white/10 border border-white/20 rounded-2xl h-[64px] px-5 flex items-center gap-3 text-white font-bold transition-all hover:bg-white/20">
+                                        <Calendar className="text-white/80 w-5 h-5 flex-shrink-0 group-hover:text-pink-400 transition-colors" />
+                                        <span className="truncate whitespace-nowrap text-base">
+                                            {startDate ? startDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '시작일'}
+                                            {endDate ? ` ~ ${endDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}` : ''}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                {/* Simplified Minimalist Calendar Popover */}
+                                <AnimatePresence>
+                                    {showCalendar && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40 bg-black/5 backdrop-blur-[2px]"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowCalendar(false);
+                                                }}
+                                            />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                className="absolute top-full mt-4 left-0 md:left-1/2 md:-translate-x-1/2 z-50 bg-white shadow-[0_30px_70px_rgba(0,0,0,0.3)] border border-stone-100 rounded-[40px] p-10 w-[360px] md:w-[480px]"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <div className="flex justify-between items-center mb-8">
+                                                        <h4 className="font-black text-2xl text-[#2d241a]">2026년 2월</h4>
+                                                        <div className="flex gap-2">
+                                                            <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
+                                                                <span className="text-xl font-bold">&larr;</span>
+                                                            </button>
+                                                            <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
+                                                                <span className="text-xl font-bold">&rarr;</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-7 gap-1 mb-4">
+                                                        {['일', '월', '화', '수', '목', '금', '토'].map(d => (
+                                                            <div key={d} className="text-[11px] font-black text-stone-300 text-center uppercase tracking-widest">{d}</div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="grid grid-cols-7 gap-1 mb-8">
+                                                        {Array.from({ length: 28 }).map((_, i) => {
+                                                            const day = i + 1;
+                                                            const date = new Date(2026, 1, day);
+                                                            const isToday = day === 3;
+
+                                                            const isSelected = (startDate && date.toDateString() === startDate.toDateString()) ||
+                                                                (endDate && date.toDateString() === endDate.toDateString()) ||
+                                                                (startDate && endDate && date > startDate && date < endDate);
+
+                                                            const isStart = startDate && date.toDateString() === startDate.toDateString();
+                                                            const isEnd = endDate && date.toDateString() === endDate.toDateString();
+
+                                                            return (
+                                                                <div
+                                                                    key={i}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!startDate || (startDate && endDate)) {
+                                                                            setStartDate(date);
+                                                                            setEndDate(null);
+                                                                        } else {
+                                                                            if (date < startDate) {
+                                                                                setStartDate(date);
+                                                                                setEndDate(null);
+                                                                            } else {
+                                                                                setEndDate(date);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className={`h-12 flex items-center justify-center text-sm font-bold relative cursor-pointer transition-all rounded-xl
+                                                                        ${isSelected ? 'bg-[#ff3253] text-white shadow-lg shadow-pink-100 z-10' : 'hover:bg-stone-50 text-[#2d241a]'}
+                                                                        ${isStart && endDate ? 'rounded-r-none' : ''}
+                                                                        ${isEnd ? 'rounded-l-none' : ''}
+                                                                    `}
+                                                                >
+                                                                    {day}
+                                                                    {isToday && !isStart && !isEnd && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#ff3253] rounded-full" />}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShowCalendar(false);
+                                                        }}
+                                                        className="w-full py-5 bg-[#2d241a] text-white rounded-[24px] font-black text-base shadow-xl hover:bg-stone-800 transition-all active:scale-[0.98] cursor-pointer"
+                                                    >
+                                                        선택 완료
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
                             </div>
-                            <div className="space-y-2 text-left">
-                                <label className="text-xs font-bold text-white/90 uppercase ml-2">인원</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/70">성인</span>
+                            <div className="flex-1 min-w-0 space-y-2 text-left w-full md:w-auto">
+                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">인원</label>
+                                <div className="grid grid-cols-2 gap-2 h-[64px]">
+                                    <div className="relative group h-full">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-white/90 uppercase tracking-tight pointer-events-none">성인</div>
                                         <input
                                             type="number"
                                             min="1" max="10"
                                             value={people}
                                             onChange={e => setPeople(e.target.value)}
-                                            className="w-full bg-white/15 border border-white/20 rounded-2xl py-4 pl-10 pr-2 text-white text-center font-bold focus:bg-white/25 focus:outline-none"
+                                            className="w-full h-full bg-white/10 border border-white/20 rounded-2xl pl-10 pr-2 text-white text-right pr-4 font-bold focus:bg-white/20 focus:outline-none transition-all"
                                         />
                                     </div>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/70">반려견</span>
+                                    <div className="relative group h-full">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-white/90 uppercase tracking-tight pointer-events-none">반려견</div>
                                         <input
                                             type="number"
                                             min="1" max="5"
                                             value={dogs}
                                             onChange={e => setDogs(e.target.value)}
-                                            className="w-full bg-white/15 border border-white/20 rounded-2xl py-4 pl-12 pr-2 text-white text-center font-bold focus:bg-white/25 focus:outline-none"
+                                            className="w-full h-full bg-white/10 border border-white/20 rounded-2xl pl-12 pr-2 text-white text-right pr-4 font-bold focus:bg-white/20 focus:outline-none transition-all"
                                         />
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-end">
+                            <div className="w-full md:w-auto">
                                 <button
                                     onClick={handleSearch}
-                                    className="w-full h-[58px] bg-[#FF3253] hover:bg-[#ff1f43] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-pink-500/50 transition-all flex items-center justify-center gap-2 group"
+                                    className="w-full md:w-[140px] h-[64px] bg-[#FF3253] hover:bg-[#ff1f43] text-white rounded-[20px] font-black text-lg shadow-xl hover:shadow-pink-500/40 transition-all flex items-center justify-center gap-2 group active:scale-95"
                                 >
-                                    <span>코스 검색</span>
-                                    <Search className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                    <span>검색</span>
+                                    <Search className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            {["#제주도 애견펜션", "#양양 강아지해변", "#가평 글램핑", "#서울 호캉스"].map((tag, i) => (
-                                <button key={i} onClick={() => { setRegion(tag.replace('#', '').split(' ')[0]); }} className="px-4 py-1.5 bg-white/15 hover:bg-white/25 rounded-full text-sm font-bold text-white/95 transition-colors backdrop-blur-sm border border-white/10">
-                                    {tag}
-                                </button>
-                            ))}
+                        {/* AI Requirement Input with Animated Placeholder */}
+                        <div className="relative max-w-2xl mx-auto group">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-400 group-focus-within:animate-pulse z-10">
+                                <Sparkles size={18} />
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={conditions}
+                                    onChange={e => setConditions(e.target.value)}
+                                    className="w-full bg-white/15 border border-white/30 rounded-full py-4 pl-14 pr-6 text-white focus:bg-white/25 focus:outline-none focus:ring-2 focus:ring-pink-500/40 transition-all font-bold text-sm md:text-base backdrop-blur-md"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                />
+                                {!conditions && (
+                                    <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-white/70 font-bold text-sm md:text-base">
+                                        <span className="whitespace-nowrap">아이와 함께하고 싶은 특별한 요청사항이 있나요? </span>
+                                        <div className="relative inline-block min-w-[350px] h-6 overflow-hidden">
+                                            <AnimatePresence mode="wait">
+                                                <motion.span
+                                                    key={placeholderIndex}
+                                                    initial={{ y: 30, opacity: 0 }}
+                                                    animate={{ y: 0, opacity: 1 }}
+                                                    exit={{ y: -30, opacity: 0 }}
+                                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                                    className="absolute left-0 top-0 whitespace-nowrap"
+                                                >
+                                                    &nbsp;&nbsp;&nbsp;({AI_EXAMPLES[placeholderIndex]})
+                                                </motion.span>
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -227,7 +453,7 @@ export default function TravelLanding() {
 
                                     <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md text-[#ff3253] text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
                                         <Stars size={12} className="fill-[#ff3253]" />
-                                        RECOMMENDED
+                                        추천
                                     </div>
 
                                     <div className="absolute bottom-8 left-8 right-8 text-white">
@@ -251,7 +477,7 @@ export default function TravelLanding() {
                             <div className="bg-white/20 backdrop-blur-md text-[10px] font-bold px-3 py-1.5 rounded-xl inline-block mb-4 border border-white/20">
                                 🚀 Klook 단독 특가
                             </div>
-                            <h3 className="text-3xl font-extrabold mb-3">일본 료칸<br />최대 40% OFF</h3>
+                            <h3 className="text-3xl font-extrabold mb-3">일본 료칸<br />최대 40% 할인</h3>
                             <button className="bg-white text-[#ff5b00] text-sm font-black px-6 py-3 rounded-2xl hover:bg-orange-50 transition-colors shadow-lg mt-2">
                                 할인 신청하기
                             </button>
