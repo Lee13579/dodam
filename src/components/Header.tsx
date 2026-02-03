@@ -31,6 +31,7 @@ export default function Header() {
                 </Link>
 
                 <nav className="hidden md:flex items-center gap-8">
+                    <Link href="/travel" className="text-[#5d4d3d] hover:text-pink-500 font-medium transition-colors">여행</Link>
                     <Link href="/#gallery" className="text-[#5d4d3d] hover:text-pink-500 font-medium transition-colors">갤러리</Link>
                     <Link href="/#styling" className="text-[#5d4d3d] hover:text-pink-500 font-medium transition-colors">스타일링</Link>
                     <a href="#" className="text-[#5d4d3d] hover:text-pink-500 font-medium transition-colors">추천상품</a>

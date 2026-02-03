@@ -49,15 +49,14 @@ export default function ProductRecommendation({ products }: ProductRecommendatio
                                 {product.description}
                             </p>
 
-                            <div className="flex items-center justify-between mt-auto">
-                                <span className="text-xl font-bold text-slate-900 font-mono">₩{product.price.toLocaleString()}</span>
+                            <div className="flex flex-col gap-2 w-full">
                                 <a
-                                    href={product.url}
+                                    href={product.url || `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(product.name)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-sm font-bold transition-all"
+                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-pink-500 text-white hover:bg-pink-600 rounded-2xl text-sm font-bold transition-all w-full"
                                 >
-                                    구매하기 <ExternalLink className="w-4 h-4" />
+                                    최저가 보러가기 <ExternalLink className="w-4 h-4" />
                                 </a>
                             </div>
                         </div>

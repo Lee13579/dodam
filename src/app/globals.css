@@ -115,6 +115,22 @@ h4 {
   animation: pulse-soft 4s ease-in-out infinite;
 }
 
+@keyframes bounce-subtle {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
 ::selection {
   background: rgba(79, 70, 229, 0.1);
   color: #4f46e5;

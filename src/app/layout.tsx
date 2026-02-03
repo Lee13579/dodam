@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Outfit, IBM_Plex_Sans_KR } from "next/font/google";
 import "./globals.css";
 
@@ -50,6 +51,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${outfit.variable} ${ibmPlexSansKR.variable} font-ibm-plex antialiased`}>
+        {/* Naver Maps Global Script */}
+        <Script
+          strategy="beforeInteractive"
+          src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${(process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID || '').trim()}&submodules=geocoder`}
+        />
         {children}
       </body>
     </html>

@@ -24,6 +24,10 @@ export default function StylingWorkflow() {
         styledImages: string[];
         analysis: string;
         dogName?: string;
+        technicalDetails?: {
+            prompt?: string;
+            keywords?: string[];
+        };
     } | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
 
@@ -36,7 +40,7 @@ export default function StylingWorkflow() {
         });
     };
 
-    const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string; koreanAnalysis: string }>>([]);
+    const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string; koreanAnalysis: string; searchKeywords: string[] }>>([]);
     const [regenerating, setRegenerating] = useState(false);
 
     const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
@@ -83,6 +87,7 @@ export default function StylingWorkflow() {
 
             let generationPrompt = "";
             let analysis = "";
+            let keywords: string[] = [];
 
             // Check if it's an AI-generated style or a custom style
             const selectedAiConcept = recommendations.find(c => c.id === style);
@@ -91,6 +96,7 @@ export default function StylingWorkflow() {
                 // SKIP REDUNDANT ANALYSIS: Use pre-calculated prompt and analysis from Step 1
                 generationPrompt = selectedAiConcept.customPrompt;
                 analysis = selectedAiConcept.koreanAnalysis;
+                keywords = selectedAiConcept.searchKeywords || [];
                 setLoadingStep(`${dispName}의 스타일을 정교하게 다듬는 중...`);
             } else if (style === 'custom') {
                 // Only analyze if it's a completely new custom prompt
@@ -109,6 +115,7 @@ export default function StylingWorkflow() {
 
                 generationPrompt = analyzeData.generationPrompt;
                 analysis = analyzeData.analysis;
+                keywords = [customPrompt]; // Fallback keyword for custom
             } else {
                 // Fallback for any other cases
                 throw new Error("Invalid style selection");
@@ -127,8 +134,13 @@ export default function StylingWorkflow() {
 
             // Fetch Partner Products
             setLoadingStep("거의 다 됐어요! 반짝이는 모습을 준비 중...");
-            const productStyleId = style === 'custom' ? 'Teddy Bear' : style;
-            const partnersRes = await fetch(`/api/partners?styleId=${productStyleId}`);
+
+            let query = style === 'custom' ? customPrompt : "";
+            if (selectedAiConcept && selectedAiConcept.searchKeywords) {
+                query = (selectedAiConcept as any).searchKeywords.join(" ");
+            }
+
+            const partnersRes = await fetch(`/api/partners?query=${encodeURIComponent(query || style)}&styleId=${style}`);
             const productsData = await partnersRes.json();
 
             setResults({
@@ -136,6 +148,10 @@ export default function StylingWorkflow() {
                 styledImages: generateData.urls,
                 analysis,
                 dogName: dogName || undefined,
+                technicalDetails: {
+                    prompt: generationPrompt,
+                    keywords: keywords
+                }
             });
             setProducts(productsData);
             setStep(3);
@@ -198,6 +214,7 @@ export default function StylingWorkflow() {
             setRegenerating(false);
         }
     };
+
 
     return (
         <div className="max-w-7xl mx-auto py-12 px-6">
@@ -378,6 +395,7 @@ export default function StylingWorkflow() {
                             styledImages={results.styledImages}
                             analysis={results.analysis}
                             dogName={results.dogName}
+                            technicalDetails={results.technicalDetails}
                         />
 
                         <div className="mt-8 pt-8 border-t border-slate-100">
