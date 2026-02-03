@@ -32,7 +32,14 @@ export interface TransformedPlace {
   lng: number;
   description?: string;
   link?: string;
-  imageUrl?: string; // 이미지 URL 추가
+  imageUrl?: string;
+  // Affiliate Extensions
+  price?: number;
+  originalPrice?: number;
+  rating?: number;
+  reviewCount?: number;
+  bookingUrl?: string;
+  source?: 'NAVER' | 'AGODA' | 'KLOOK';
 }
 
 export async function searchNaverImages(query: string): Promise<string | null> {

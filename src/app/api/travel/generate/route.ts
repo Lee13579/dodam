@@ -1,53 +1,127 @@
 import { geminiModel } from "@/lib/gemini";
 import { searchNaverPlaces, TransformedPlace } from "@/lib/naver-search";
+import { fetchAgodaHotels, AgodaHotel } from "@/lib/agoda-service";
+import { fetchKlookProducts, KlookProduct } from "@/lib/klook-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
     const { days, people, dogs, region, conditions } = await req.json();
 
-    // 1. Gemini에게 검색 키워드 생성을 요청합니다.
-    // 장소 ID를 묻는 것이 아니라, "검색할 단어"를 묻습니다.
+    // 1. Parallel Fetching: Agoda (Hotel) + Klook (Activity) + Gemini Keywords (for Naver)
+    // We want to secure "Money Making" items first.
+    const agodaPromise = fetchAgodaHotels(`${region} 애견동반 호텔`, 1);
+    const klookPromise = fetchKlookProducts(`${region} 애견동반`, 1);
+
+    // Ask Gemini for complementary places (Cafe, Restaurant, Park) avoiding Hotels if possible
     const prompt = `
       You are a professional Pet Travel Planner in Korea.
       User Plan: ${days} trip to ${region} for ${people} people and ${dogs} dogs.
       Preferences: ${conditions}
 
-      Task: Generate 4 distinct search queries to find the best places using Naver Maps.
-      Include a mix of:
-      1. A pet-friendly hotel/pension (if overnight)
-      2. A pet-friendly cafe
-      3. A nice park or walking trail
-      4. A pet-friendly restaurant
+      Task: Generate 3 distinct search queries to find the best generic places using Naver Maps.
+      Focus on:
+      1. A popular pet-friendly cafe
+      2. A pet-friendly restaurant
+      3. A scenic park or walking trail
+      (Do NOT suggest Hotels, as we use Agoda for that)
 
       Output ONLY a JSON array of strings (Korean).
-      Example: ["강남구 애견동반 호텔", "청담동 애견 카페", "도산공원", "압구정 애견동반 식당"]
+      Example: ["청담동 애견 카페", "도산공원 산책로", "압구정 애견동반 식당"]
     `;
 
-    const result = await geminiModel.generateContent(prompt);
-    const response = await result.response;
+    const geminiPromise = geminiModel.generateContent(prompt);
+
+    const [agodaHotels, klookProducts, geminiResult] = await Promise.all([
+      agodaPromise,
+      klookPromise,
+      geminiPromise
+    ]);
+
+    // 2. Transform Affiliate Data
+    const affiliatePlaces: TransformedPlace[] = [];
+
+    // Agoda -> TransformedPlace
+    if (agodaHotels.length > 0) {
+      const h = agodaHotels[0];
+      affiliatePlaces.push({
+        id: h.id,
+        name: h.name,
+        title: h.name,
+        category: 'Hotel',
+        address: `${region} (상세 주소 예약시 안내)`, // Agoda mock often lacks address, fill generic
+        lat: 0, // Mock lat/lng or use region center if available. 
+        lng: 0, // We will handle 0,0 in frontend or add random jitter later.
+        description: h.description,
+        imageUrl: h.imageUrl,
+        price: h.price,
+        originalPrice: h.originalPrice,
+        rating: h.rating,
+        reviewCount: h.reviewCount,
+        bookingUrl: h.url,
+        source: 'AGODA'
+      });
+    }
+
+    // Klook -> TransformedPlace
+    if (klookProducts.length > 0) {
+      const k = klookProducts[0];
+      affiliatePlaces.push({
+        id: k.id,
+        name: k.title,
+        title: k.title,
+        category: 'Park', // Map Activity to Park or create new 'Activity' category? Let's use Park for 'Play'
+        address: `${region} 주요 관광지`,
+        lat: 0,
+        lng: 0,
+        description: "티켓/액티비티 특가",
+        imageUrl: k.imageUrl,
+        price: k.price,
+        originalPrice: k.originalPrice,
+        rating: k.rating,
+        reviewCount: k.reviewCount,
+        bookingUrl: k.url,
+        source: 'KLOOK'
+      });
+    }
+
+    // 3. Process Gemini & Naver
+    const response = await geminiResult.response;
     const text = response.text();
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+
     let queries: string[] = [];
     try {
       queries = JSON.parse(cleanText);
     } catch (e) {
-      console.error("JSON Parse Failed, using fallback queries");
-      queries = [`${region} 애견동반 호텔`, `${region} 애견 카페`, `${region} 공원`, `${region} 맛집`];
+      queries = [`${region} 애견 카페`, `${region} 공원`, `${region} 맛집`];
     }
 
-    // 2. 생성된 키워드로 네이버 API를 병렬 호출합니다.
-    // 각 키워드당 1개의 베스트 장소만 가져오도록 설정 (display: 1)
+    // Fetch Naver
     const searchPromises = queries.map(query => searchNaverPlaces(query, 1));
     const searchResults = await Promise.all(searchPromises);
+    const naverPlaces: TransformedPlace[] = searchResults.flat().filter(p => p !== undefined && p.id !== undefined).map(p => ({
+      ...p,
+      source: 'NAVER' as const
+    }));
 
-    // 3. 결과 평탄화 (2차원 배열 -> 1차원 배열)
-    // 빈 결과 제거
-    const places: TransformedPlace[] = searchResults.flat().filter(p => p !== undefined && p.id !== undefined);
+    // 4. Combine: Affiliate First, then Naver
+    const allPlaces = [...affiliatePlaces, ...naverPlaces];
 
-    // 4. 결과 반환 (ID 리스트가 아닌, 장소 객체 리스트 자체를 반환합니다!)
-    return NextResponse.json(places);
+    // Assign generic coordinates to Affiliate items if they are 0,0 by using the first Naver item's location + offset
+    // This cheats the map to show them near the destination
+    const referencePlace = naverPlaces[0];
+    if (referencePlace) {
+      allPlaces.forEach((p, idx) => {
+        if (p.lat === 0 && p.lng === 0) {
+          // Add slight jitter so they don't stack exactly
+          p.lat = referencePlace.lat + (Math.random() * 0.01 - 0.005);
+          p.lng = referencePlace.lng + (Math.random() * 0.01 - 0.005);
+        }
+      });
+    }
+
+    return NextResponse.json(allPlaces);
 
   } catch (error: any) {
     console.error("Course Generation Error:", error);

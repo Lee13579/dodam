@@ -31,6 +31,11 @@ export default function TravelLanding() {
     const [isTrendingLoading, setIsTrendingLoading] = useState(true);
     const [trendingTags, setTrendingTags] = useState<string[]>(["#제주도", "#양양", "#가평", "#서울"]);
 
+    // Dodam Picks State
+    const [dodamPicks, setDodamPicks] = useState<any[]>([]);
+    const [isPicksLoading, setIsPicksLoading] = useState(true);
+    const [activePickTab, setActivePickTab] = useState('resort');
+
     // Popover States
     const [showRegionPopover, setShowRegionPopover] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
@@ -71,12 +76,14 @@ export default function TravelLanding() {
                 const res = await fetch('/api/travel/trending');
                 if (res.ok) {
                     const data = await res.json();
-                    setTrendingPlaces(data);
+                    if (Array.isArray(data)) {
+                        setTrendingPlaces(data);
 
-                    // Extract dynamic tags from trending data categories/regions
-                    if (data.length > 0) {
-                        const tags = Array.from(new Set(data.map((p: any) => `#${p.address?.split(' ')[0] || p.title.split(' ')[0]}`))).slice(0, 4);
-                        if (tags.length > 0) setTrendingTags(tags as string[]);
+                        // Extract dynamic tags from trending data
+                        if (data.length > 0) {
+                            const tags = Array.from(new Set(data.map((p: any) => `#${p.address?.split(' ')[0] || p.title.split(' ')[0]}`))).slice(0, 4);
+                            if (tags.length > 0) setTrendingTags(tags as string[]);
+                        }
                     }
                 }
             } catch (e) {
@@ -85,7 +92,26 @@ export default function TravelLanding() {
                 setIsTrendingLoading(false);
             }
         };
+
+        const fetchPicks = async () => {
+            try {
+                const res = await fetch('/api/travel/picks');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        setDodamPicks(data);
+                        if (data.length > 0) setActivePickTab(data[0].id);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch picks", e);
+            } finally {
+                setIsPicksLoading(false);
+            }
+        };
+
         fetchTrending();
+        fetchPicks();
     }, []);
 
     const handleSearch = () => {
@@ -470,6 +496,97 @@ export default function TravelLanding() {
                     </div>
                 </section>
 
+                {/* Dodam Picks Section (New Style) */}
+                <section className="mb-24">
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 gap-4">
+                        <div>
+                            <h3 className="text-3xl font-black text-[#2d241a] mb-2 leading-tight">
+                                도담이 엄선한<br />
+                                <span className="text-[#ff3253]">테마별 추천 여행지 🏆</span>
+                            </h3>
+                            <p className="text-stone-500 font-bold text-sm">반려견 전문가들이 직접 고르고 추천하는 최고의 숙소</p>
+                        </div>
+
+                        {/* Tab Navigation */}
+                        <div className="flex bg-stone-100 p-1.5 rounded-2xl">
+                            {isPicksLoading ? (
+                                <div className="w-64 h-10 bg-stone-200 rounded-xl animate-pulse" />
+                            ) : (
+                                dodamPicks.map((category) => (
+                                    <button
+                                        key={category.id}
+                                        onClick={() => setActivePickTab(category.id)}
+                                        className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activePickTab === category.id
+                                            ? 'bg-white text-[#ff3253] shadow-sm'
+                                            : 'text-stone-400 hover:text-stone-600'
+                                            }`}
+                                    >
+                                        {category.title.split(' ')[0]}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {isPicksLoading ? (
+                            Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="h-[320px] rounded-[32px] bg-stone-100 animate-pulse" />
+                            ))
+                        ) : (
+                            dodamPicks
+                                .find(cat => cat.id === activePickTab)
+                                ?.items.map((item: any, idx: number) => (
+                                    <div
+                                        key={idx}
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                region: item.address?.split(' ')[0] || item.title,
+                                                placeId: item.id
+                                            });
+                                            router.push(`/travel/map?${params.toString()}`);
+                                        }}
+                                        className="group cursor-pointer"
+                                    >
+                                        <div className="relative h-[250px] rounded-[32px] overflow-hidden mb-4 shadow-lg">
+                                            <img
+                                                src={item.imageUrl || 'https://images.unsplash.com/photo-1587381420270-3e1a5b9e6904?q=80&w=400&auto=format&fit=crop'}
+                                                alt={item.title}
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                            <div className="absolute top-4 left-4">
+                                                <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black text-white ${item.badge === '인기' ? 'bg-orange-500' :
+                                                    item.badge === '추천' ? 'bg-[#ff3253]' : 'bg-blue-500'
+                                                    }`}>
+                                                    {item.badge}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="px-2">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className="text-xl font-bold text-[#2d241a] line-clamp-1 group-hover:text-[#ff3253] transition-colors">
+                                                    {item.title}
+                                                </h4>
+                                                <div className="flex items-center gap-1 bg-stone-100 px-2 py-1 rounded-lg">
+                                                    <Stars size={12} className="fill-yellow-400 text-yellow-400" />
+                                                    <span className="text-xs font-bold text-[#2d241a]">{item.rating}</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-stone-400 text-xs font-bold mb-2 line-clamp-1">{item.address}</p>
+                                            <div className="flex gap-2 text-stone-300 text-xs">
+                                                <span>리뷰 {item.reviews}</span>
+                                                <span>•</span>
+                                                <span>저장 많은 순</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                        )}
+                    </div>
+                </section>
                 {/* Promo Banners */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="relative rounded-[40px] overflow-hidden bg-gradient-to-br from-[#ff5b00] to-[#ff9c00] p-10 shadow-2xl shadow-orange-100 flex items-center justify-between group cursor-pointer hover:scale-[1.02] transition-transform">

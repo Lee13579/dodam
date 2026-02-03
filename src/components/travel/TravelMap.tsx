@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Plus, Trash2, Calendar, PawPrint, Coffee, Utensils, Hotel, Trees, ArrowDown, Bot, Loader2, Stars } from 'lucide-react';
+import { Search, MapPin, Plus, Trash2, Calendar, PawPrint, Coffee, Utensils, Hotel, Trees, ArrowDown, Bot, Loader2, Stars, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface Place {
@@ -12,6 +12,15 @@ export interface Place {
     lat: number;
     lng: number;
     title: string;
+    // Enhanced Fields
+    description?: string;
+    imageUrl?: string;
+    price?: number;
+    originalPrice?: number;
+    rating?: number;
+    reviewCount?: number;
+    bookingUrl?: string;
+    source?: 'NAVER' | 'AGODA' | 'KLOOK';
 }
 
 interface TravelMapProps {
@@ -49,21 +58,12 @@ const TravelMap: React.FC<TravelMapProps> = ({
     const [region, setRegion] = useState(initialRegion);
     const [conditions, setConditions] = useState('');
 
-    // Auto-generate on mount if params exist? 
-    // Usually handled by parent Page component via handleGenerateCourse, so we just display the UI.
-
     const categories = [
         { id: 'Hotel', icon: Hotel, label: 'Sleep' },
         { id: 'Restaurant', icon: Utensils, label: 'Eat' },
         { id: 'Cafe', icon: Coffee, label: 'Cafe' },
         { id: 'Park', icon: Trees, label: 'Play' },
     ];
-
-    const filteredPlaces = allPlaces.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-        return matchesSearch && matchesCategory;
-    });
 
     const getCategoryIcon = (category: string) => {
         switch (category) {
@@ -92,7 +92,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
 
             <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide bg-gradient-to-b from-white to-[#fffdfa]">
 
-                {/* AI Configuration Section (Collapsed or Minimal) */}
+                {/* AI Configuration Section */}
                 <div className="bg-white rounded-[24px] p-5 shadow-lg shadow-stone-100 border border-[#fff4e6] space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold flex items-center gap-2 text-[#2D241A]">
@@ -131,7 +131,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
                         {isLoading ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin text-pink-500" />
-                                <span>코스 다시 생성 중...</span>
+                                <span>코스 찾는 중...</span>
                             </>
                         ) : (
                             <>
@@ -180,15 +180,23 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                     </div>
 
                                     <div
-                                        className="flex-1 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group"
+                                        className="flex-1 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:border-pink-200"
                                         onMouseEnter={() => onHoverPlace?.(place.id)}
                                         onMouseLeave={() => onHoverPlace?.(null)}
                                     >
+                                        {/* Affiliate Badge */}
+                                        {place.source === 'AGODA' && (
+                                            <div className="inline-block bg-blue-100 text-blue-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">AGODA 특가</div>
+                                        )}
+                                        {place.source === 'KLOOK' && (
+                                            <div className="inline-block bg-orange-100 text-orange-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">KLOOK 액티비티</div>
+                                        )}
+                                        {place.source === 'NAVER' && (
+                                            <div className="inline-block bg-green-100 text-green-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">NAVER 추천</div>
+                                        )}
+
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="w-6 h-6 rounded-full bg-stone-50 text-[#8B7355] flex items-center justify-center text-xs">
-                                                    {getCategoryIcon(place.category)}
-                                                </span>
                                                 <h4 className="text-sm font-extrabold text-[#2d241a] line-clamp-1">{place.name}</h4>
                                             </div>
                                             <button
@@ -198,46 +206,50 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
-                                        <p className="text-xs text-stone-500 pl-8 line-clamp-1">{place.address}</p>
+
+                                        {/* Image (Optional) */}
+                                        {place.imageUrl && (
+                                            <div className="w-full h-24 mb-3 rounded-xl overflow-hidden shadow-sm">
+                                                <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+
+                                        {/* Price & Rating */}
+                                        {(place.price || place.rating) && (
+                                            <div className="flex items-center justify-between text-xs mb-3 font-bold text-stone-600 bg-stone-50 p-2 rounded-lg">
+                                                {place.price && (
+                                                    <span className="text-pink-600">₩{place.price.toLocaleString()}</span>
+                                                )}
+                                                {place.rating && (
+                                                    <span className="flex items-center gap-1 text-yellow-500">
+                                                        <Stars size={10} fill="currentColor" /> {place.rating}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-stone-500 line-clamp-1 mb-3">{place.address}</p>
+
+                                        {/* Booking Button */}
+                                        {place.bookingUrl && (
+                                            <a
+                                                href={place.bookingUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block w-full text-center py-2 rounded-xl bg-[#2d241a] text-white text-xs font-bold hover:bg-black transition-colors"
+                                            >
+                                                예약 / 예매하러 가기 <ExternalLink size={10} className="inline ml-1" />
+                                            </a>
+                                        )}
                                     </div>
                                 </motion.div>
                             ))
                         )}
                     </div>
                 </section>
-
-                {/* Place Search/Add (Optional, usually for manual adding) */}
-                <div className="bg-white p-4 rounded-[24px] border border-stone-100 shadow-sm">
-                    <div className="relative mb-4">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
-                        <input
-                            type="text"
-                            placeholder="장소 검색..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-stone-50 h-11 pl-10 pr-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-pink-100 outline-none transition-all placeholder-stone-400"
-                        />
-                    </div>
-                    <div className="flex overflow-x-auto gap-2 scrollbar-hide pb-2">
-                        {categories.map(cat => (
-                            <button
-                                key={cat.id}
-                                onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${selectedCategory === cat.id
-                                        ? 'bg-[#2d241a] text-white shadow-lg shadow-black/20 ring-2 ring-black/10'
-                                        : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200 shadow-sm'
-                                    }`}
-                            >
-                                <cat.icon size={12} />
-                                {cat.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
             </div>
         </div>
     );
-}
+};
 
 export default TravelMap;

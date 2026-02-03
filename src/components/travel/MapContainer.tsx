@@ -8,8 +8,19 @@ declare global {
     }
 }
 
+interface ExtendedMarker {
+    lat: number;
+    lng: number;
+    title: string;
+    id: string;
+    imageUrl?: string;
+    price?: number;
+    bookingUrl?: string;
+    source?: 'NAVER' | 'AGODA' | 'KLOOK';
+}
+
 interface MapContainerProps {
-    markers: Array<{ lat: number; lng: number; title: string; id: string }>;
+    markers: ExtendedMarker[];
     focusedId?: string | null;
 }
 
@@ -109,6 +120,9 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
             path.push(position);
             bounds.extend(position);
 
+            const isAffiliate = marker.source === 'AGODA' || marker.source === 'KLOOK';
+            const markerColor = isAffiliate ? '#ec4899' : '#8B7355'; // Pink for Affiliate, Brown/Gold for Naver
+
             const newMarker = new window.naver.maps.Marker({
                 position: position,
                 map: mapInstance.current,
@@ -116,10 +130,10 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                 icon: {
                     content: `
                         <div class="relative transition-transform duration-300 ease-out marker-container" id="marker-${marker.id}">
-                            <div class="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg border-2 border-white ring-2 ring-pink-500/20">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg border-2 border-white ring-2 ring-black/5" style="background-color: ${markerColor}">
                                 ${index + 1}
                             </div>
-                            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-pink-500 rotate-45 border-r border-b border-white"></div>
+                            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 border-r border-b border-white" style="background-color: ${markerColor}"></div>
                         </div>
                     `,
                     anchor: new window.naver.maps.Point(16, 36),
@@ -127,14 +141,27 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                 zIndex: 100 + index
             });
 
-            // InfoWindow
-            const infoWindow = new window.naver.maps.InfoWindow({
-                content: `
-                    <div class="p-4 min-w-[150px] bg-white rounded-2xl shadow-xl border-none">
-                        <p class="text-[10px] font-bold text-pink-500 mb-1 uppercase tracking-wider">Step ${index + 1}</p>
-                        <h4 class="text-sm font-extrabold text-[#2D241A]">${marker.title}</h4>
+            // Rich InfoWindow content
+            const imageHtml = marker.imageUrl ?
+                `<div style="width:100%; height:120px; background-image:url('${marker.imageUrl}'); background-size:cover; background-position:center; border-radius:12px 12px 0 0;"></div>` : '';
+
+            const badgeHtml = marker.source === 'AGODA' ? `<span style="background:#dbeafe; color:#1d4ed8; font-size:10px; padding:2px 6px; border-radius:99px; font-weight:800; display:inline-block; margin-bottom:4px;">AGODA</span>` :
+                marker.source === 'KLOOK' ? `<span style="background:#ffedd5; color:#c2410c; font-size:10px; padding:2px 6px; border-radius:99px; font-weight:800; display:inline-block; margin-bottom:4px;">KLOOK</span>` : '';
+
+            const infoWindowContent = `
+                <div style="min-width:200px; background:white; border-radius:16px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); border:none; padding:0; overflow:hidden; font-family:sans-serif;">
+                    ${imageHtml}
+                    <div style="padding:16px;">
+                        ${badgeHtml}
+                        <p style="font-size:10px; font-weight:700; color:#ec4899; margin:0 0 2px 0; letter-spacing:0.05em;">STEP ${index + 1}</p>
+                        <h4 style="font-size:15px; font-weight:800; color:#1c1917; margin:0 0 4px 0; line-height:1.3;">${marker.title}</h4>
+                        ${marker.price ? `<p style="font-size:13px; font-weight:700; color:#57534e;">₩${marker.price.toLocaleString()}</p>` : ''}
                     </div>
-                `,
+                </div>
+            `;
+
+            const infoWindow = new window.naver.maps.InfoWindow({
+                content: infoWindowContent,
                 borderWidth: 0,
                 backgroundColor: "transparent",
                 disableAnchor: true,
@@ -142,17 +169,28 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
             });
 
             window.naver.maps.Event.addListener(newMarker, "click", () => {
+                // If it's already open, close it? Or just keep opening (standard map behavior)
+                // Let's maximize focus
                 infoWindow.open(mapInstance.current, newMarker);
             });
+
+            // Auto open for affiliate markers initially? Maybe too cluttered.
+            // But if it's the focused ID, maybe?
 
             markerInstances.current.set(marker.id, newMarker);
         });
 
         // Draw Polyline
-        if (path.length > 1) {
+        if (markers.length > 1) {
+            if (polylineInstance.current) {
+                polylineInstance.current.setMap(null);
+            }
+
+            const linePath = markers.map(m => new window.naver.maps.LatLng(m.lat, m.lng));
+
             polylineInstance.current = new window.naver.maps.Polyline({
                 map: mapInstance.current,
-                path: path,
+                path: linePath,
                 strokeColor: '#ec4899',
                 strokeOpacity: 0.8,
                 strokeWeight: 4,
@@ -177,6 +215,8 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
         if (marker) {
             marker.setAnimation(window.naver.maps.Animation.BOUNCE);
             marker.setZIndex(999);
+            // Optional: Pan to marker
+            // mapInstance.current.panTo(marker.getPosition());
         }
 
         return () => {
