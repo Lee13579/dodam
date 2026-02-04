@@ -1,40 +1,53 @@
 import { searchNaverPlaces } from "@/lib/naver-search";
+import { generateTrendingTags, getNaverTrendingKeywords } from "@/lib/naver-datalab";
 import { NextResponse } from "next/server";
+
+// In-memory cache for trending places to minimize API costs
+let cachedTrending: any[] | null = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour cache
 
 export async function GET() {
     try {
-        // Define the "Trending" queries we want to show
-        // We fetch 1 best result for each to populate the cards
-        const queries = [
-            { q: "제주도 애월 핫플레이스", desc: "해안도로 드라이브" },
-            { q: "강릉 안목해변 카페", desc: "커피거리 산책" },
-            { q: "부산 해운대 핫플", desc: "오션뷰 힐링" },
-            { q: "가평 풀빌라", desc: "프라이빗 휴식" }
-        ];
+        const currentTime = Date.now();
 
-        const results = await Promise.all(
-            queries.map(async (item) => {
-                // Fetch top 1 result for this query, WITH image
-                // We use display=1 to get the single best match
-                const places = await searchNaverPlaces(item.q, 1);
-                if (places && places.length > 0) {
-                    return {
-                        ...places[0],
-                        customDesc: item.desc, // Keep our curated description or use AI later
-                        rating: (9.0 + Math.random()).toFixed(1), // Naver API doesn't give rating, simplify for MVP
-                        reviews: Math.floor(Math.random() * 1000) + 500
-                    };
-                }
-                return null;
-            })
-        );
+        // Fetch fresh data only if cache is empty or expired (1 hour)
+        if (!cachedTrending || (currentTime - lastFetchTime > CACHE_DURATION)) {
+            // Fetch "Real" Trending Keywords from DataLab (Simulated for robustness)
+            const trendKeywords = await getNaverTrendingKeywords();
 
-        const validResults = results.filter(r => r !== null);
+            const results = await Promise.all(
+                trendKeywords.map(async (keyword) => {
+                    // Fetch results for this specific trending keyword
+                    const places = await searchNaverPlaces(keyword, 5);
 
-        // Cache control to prevent hitting Naver API limits too hard
-        return NextResponse.json(validResults, {
+                    const petFriendlyPlace = places.find(p => p.isPetFriendly);
+
+                    if (petFriendlyPlace) {
+                        const tags = generateTrendingTags(petFriendlyPlace.name, petFriendlyPlace.category);
+                        return {
+                            ...petFriendlyPlace,
+                            // Use the keyword itself to describe the trend
+                            customDesc: `🔥 요즘 뜨는 "${keyword}"`,
+                            tags: tags,
+                        };
+                    }
+                    return null;
+                })
+            );
+
+            cachedTrending = results.filter(r => r !== null);
+            lastFetchTime = currentTime;
+        }
+
+        // Shuffle the cached items and return a random subset of 10 for variety
+        const randomSubset = [...(cachedTrending || [])]
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 10);
+
+        return NextResponse.json(randomSubset, {
             headers: {
-                'Cache-Control': 's-maxage=3600, stale-while-revalidate' // Cache for 1 hour
+                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59'
             }
         });
 

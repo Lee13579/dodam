@@ -20,8 +20,9 @@ const MOCK_PLACES: Place[] = [
     { id: 'r2', name: 'Sunshine Brunch', title: 'Sunshine Brunch', category: 'Restaurant', address: 'Yongsan-gu, Seoul', lat: 37.5350, lng: 126.9900 },
 ];
 
-export default function TravelUnifiedPage({ params }: { params: { slug?: string[] } }) {
-    const isMapMode = params.slug?.[0] === 'map';
+export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?: string[] }> }) {
+    const resolvedParams = React.use(params);
+    const isMapMode = resolvedParams.slug?.[0] === 'map';
     const searchParams = useSearchParams();
 
     // Initial Params for Map Mode

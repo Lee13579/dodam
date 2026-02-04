@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Calendar, Stars, Trees, Loader2, Sparkles } from 'lucide-react';
+import { Search, MapPin, Calendar, Trees, Loader2, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -20,8 +20,9 @@ export default function TravelLanding() {
     const router = useRouter();
 
     // Form State
-    const [days, setDays] = useState('1 Day');
+    const [rooms, setRooms] = useState('1');
     const [people, setPeople] = useState('2');
+    const [children, setChildren] = useState('0');
     const [dogs, setDogs] = useState('1');
     const [region, setRegion] = useState('');
     const [conditions, setConditions] = useState('');
@@ -39,8 +40,29 @@ export default function TravelLanding() {
     // Popover States
     const [showRegionPopover, setShowRegionPopover] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
+    const [showGuestPopover, setShowGuestPopover] = useState(false);
     const [startDate, setStartDate] = useState<Date | null>(new Date());
     const [endDate, setEndDate] = useState<Date | null>(new Date(Date.now() + 86400000)); // Default 1 night 2 days
+
+    const trendingScrollRef = useRef<HTMLDivElement>(null);
+
+    const scrollTrending = (direction: 'left' | 'right') => {
+        if (trendingScrollRef.current) {
+            const cardWidth = 280 + 24; // Card width (280) + gap (24)
+            const currentScroll = trendingScrollRef.current.scrollLeft;
+
+            // Calculate next scroll position based on current scroll position
+            // Round it to the nearest card to ensure smooth "one-by-one" feel
+            const nextIndex = direction === 'left'
+                ? Math.round((currentScroll - cardWidth) / cardWidth)
+                : Math.round((currentScroll + cardWidth) / cardWidth);
+
+            trendingScrollRef.current.scrollTo({
+                left: nextIndex * cardWidth,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     // AI Placeholder Cycle
     const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -121,7 +143,9 @@ export default function TravelLanding() {
 
         const params = new URLSearchParams({
             days: finalDays,
+            rooms,
             people,
+            children,
             dogs,
             region: region || '서울',
             conditions
@@ -161,7 +185,7 @@ export default function TravelLanding() {
                 </AnimatePresence>
 
                 {/* Search Content */}
-                <div className="relative z-10 container mx-auto max-w-5xl px-4 text-center">
+                <div className="relative z-10 container mx-auto max-w-7xl px-4 text-center">
                     <h2 className="text-5xl font-black mb-6 drop-shadow-2xl leading-tight">
                         아이의 눈높이로 설계한<br />
                         가장 완벽한 동반 여행
@@ -171,10 +195,10 @@ export default function TravelLanding() {
                         소중한 우리 아이를 위한 최적의 여행지를 추천합니다.
                     </p>
 
-                    <div className="bg-white/20 backdrop-blur-2xl border border-white/30 rounded-[40px] p-8 shadow-2xl max-w-5xl mx-auto">
+                    <div className="bg-white/20 backdrop-blur-2xl border border-white/30 rounded-[40px] p-12 shadow-2xl max-w-7xl mx-auto">
                         <div className="flex flex-col md:flex-row gap-4 mb-6 items-end">
                             <div className="flex-[1.2] min-w-0 space-y-2 text-left w-full md:w-auto">
-                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">지역</label>
+                                <label className="text-lg font-black text-white uppercase ml-4 tracking-widest">지역</label>
                                 <div className="relative group">
                                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 w-5 h-5 group-hover:text-pink-400 transition-colors" />
                                     <input
@@ -186,7 +210,7 @@ export default function TravelLanding() {
                                             setShowCalendar(false);
                                         }}
                                         placeholder="어디로 갈까요?"
-                                        className="w-full bg-white/10 border border-white/20 rounded-2xl h-[64px] pl-12 pr-4 text-white placeholder-white/70 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all font-bold text-base"
+                                        className="w-full bg-white/10 border border-white/20 rounded-2xl h-[84px] pl-16 pr-4 text-white placeholder-white/70 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-pink-500/50 transition-all font-black text-xl"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 setShowRegionPopover(false);
@@ -258,168 +282,226 @@ export default function TravelLanding() {
                                     </AnimatePresence>
                                 </div>
                             </div>
-                            <div className="flex-[1.3] min-w-0 space-y-2 text-left relative w-full md:w-auto">
-                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">기간</label>
+                            <div className="flex-[1.5] min-w-0 space-y-2 text-left relative w-full md:w-auto">
+                                <label className="text-lg font-black text-white uppercase ml-4 tracking-widest">기간</label>
                                 <div
                                     onClick={() => setShowCalendar(!showCalendar)}
                                     className="relative cursor-pointer group"
                                 >
-                                    <div className="w-full bg-white/10 border border-white/20 rounded-2xl h-[64px] px-5 flex items-center gap-3 text-white font-bold transition-all hover:bg-white/20">
-                                        <Calendar className="text-white/80 w-5 h-5 flex-shrink-0 group-hover:text-pink-400 transition-colors" />
-                                        <span className="truncate whitespace-nowrap text-base">
+                                    <div className="w-full bg-white/10 border border-white/20 rounded-2xl h-[84px] px-8 flex items-center gap-5 text-white font-black transition-all hover:bg-white/20">
+                                        <Calendar className="text-white/80 w-8 h-8 flex-shrink-0 group-hover:text-pink-400 transition-colors" />
+                                        <span className="whitespace-nowrap text-xl">
                                             {startDate ? startDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '시작일'}
                                             {endDate ? ` ~ ${endDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}` : ''}
                                         </span>
                                     </div>
-                                </div>
 
-                                {/* Simplified Minimalist Calendar Popover */}
-                                <AnimatePresence>
-                                    {showCalendar && (
-                                        <>
-                                            <div
-                                                className="fixed inset-0 z-40 bg-black/5 backdrop-blur-[2px]"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setShowCalendar(false);
-                                                }}
-                                            />
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                                                className="absolute top-full mt-4 left-0 md:left-1/2 md:-translate-x-1/2 z-50 bg-white shadow-[0_30px_70px_rgba(0,0,0,0.3)] border border-stone-100 rounded-[40px] p-10 w-[360px] md:w-[480px]"
-                                            >
-                                                <div className="flex flex-col">
-                                                    <div className="flex justify-between items-center mb-8">
-                                                        <h4 className="font-black text-2xl text-[#2d241a]">2026년 2월</h4>
-                                                        <div className="flex gap-2">
-                                                            <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
-                                                                <span className="text-xl font-bold">&larr;</span>
-                                                            </button>
-                                                            <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
-                                                                <span className="text-xl font-bold">&rarr;</span>
-                                                            </button>
+                                    {/* Simplified Minimalist Calendar Popover */}
+                                    <AnimatePresence>
+                                        {showCalendar && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-40 bg-transparent"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setShowCalendar(false);
+                                                    }}
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                    className="absolute top-full mt-4 left-0 md:left-1/2 md:-translate-x-1/2 z-50 bg-white shadow-[0_30px_70px_rgba(0,0,0,0.3)] border border-stone-100 rounded-[40px] p-10 w-[360px] md:w-[480px]"
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <div className="flex justify-between items-center mb-8">
+                                                            <h4 className="font-black text-2xl text-[#2d241a]">2026년 2월</h4>
+                                                            <div className="flex gap-2">
+                                                                <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
+                                                                    <span className="text-xl font-bold">&larr;</span>
+                                                                </button>
+                                                                <button className="w-10 h-10 rounded-full hover:bg-stone-50 flex items-center justify-center transition-colors text-stone-400 hover:text-[#2d241a]">
+                                                                    <span className="text-xl font-bold">&rarr;</span>
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="grid grid-cols-7 gap-1 mb-4">
-                                                        {['일', '월', '화', '수', '목', '금', '토'].map(d => (
-                                                            <div key={d} className="text-[11px] font-black text-stone-300 text-center uppercase tracking-widest">{d}</div>
-                                                        ))}
-                                                    </div>
+                                                        <div className="grid grid-cols-7 gap-1 mb-4">
+                                                            {['일', '월', '화', '수', '목', '금', '토'].map(d => (
+                                                                <div key={d} className="text-[11px] font-black text-stone-300 text-center uppercase tracking-widest">{d}</div>
+                                                            ))}
+                                                        </div>
 
-                                                    <div className="grid grid-cols-7 gap-1 mb-8">
-                                                        {Array.from({ length: 28 }).map((_, i) => {
-                                                            const day = i + 1;
-                                                            const date = new Date(2026, 1, day);
-                                                            const isToday = day === 3;
+                                                        <div className="grid grid-cols-7 gap-1 mb-8">
+                                                            {Array.from({ length: 28 }).map((_, i) => {
+                                                                const day = i + 1;
+                                                                const date = new Date(2026, 1, day);
+                                                                const isToday = day === 3;
 
-                                                            const isSelected = (startDate && date.toDateString() === startDate.toDateString()) ||
-                                                                (endDate && date.toDateString() === endDate.toDateString()) ||
-                                                                (startDate && endDate && date > startDate && date < endDate);
+                                                                const isSelected = (startDate && date.toDateString() === startDate.toDateString()) ||
+                                                                    (endDate && date.toDateString() === endDate.toDateString()) ||
+                                                                    (startDate && endDate && date > startDate && date < endDate);
 
-                                                            const isStart = startDate && date.toDateString() === startDate.toDateString();
-                                                            const isEnd = endDate && date.toDateString() === endDate.toDateString();
+                                                                const isStart = startDate && date.toDateString() === startDate.toDateString();
+                                                                const isEnd = endDate && date.toDateString() === endDate.toDateString();
 
-                                                            return (
-                                                                <div
-                                                                    key={i}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        if (!startDate || (startDate && endDate)) {
-                                                                            setStartDate(date);
-                                                                            setEndDate(null);
-                                                                        } else {
-                                                                            if (date < startDate) {
+                                                                return (
+                                                                    <div
+                                                                        key={i}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (!startDate || (startDate && endDate)) {
                                                                                 setStartDate(date);
                                                                                 setEndDate(null);
                                                                             } else {
-                                                                                setEndDate(date);
+                                                                                if (date < startDate) {
+                                                                                    setStartDate(date);
+                                                                                    setEndDate(null);
+                                                                                } else {
+                                                                                    setEndDate(date);
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    }}
-                                                                    className={`h-12 flex items-center justify-center text-sm font-bold relative cursor-pointer transition-all rounded-xl
+                                                                        }}
+                                                                        className={`h-12 flex items-center justify-center text-sm font-bold relative cursor-pointer transition-all rounded-xl
                                                                         ${isSelected ? 'bg-[#ff3253] text-white shadow-lg shadow-pink-100 z-10' : 'hover:bg-stone-50 text-[#2d241a]'}
                                                                         ${isStart && endDate ? 'rounded-r-none' : ''}
                                                                         ${isEnd ? 'rounded-l-none' : ''}
                                                                     `}
-                                                                >
-                                                                    {day}
-                                                                    {isToday && !isStart && !isEnd && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#ff3253] rounded-full" />}
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                                    >
+                                                                        {day}
+                                                                        {isToday && !isStart && !isEnd && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-[#ff3253] rounded-full" />}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
 
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setShowCalendar(false);
-                                                        }}
-                                                        className="w-full py-5 bg-[#2d241a] text-white rounded-[24px] font-black text-base shadow-xl hover:bg-stone-800 transition-all active:scale-[0.98] cursor-pointer"
-                                                    >
-                                                        선택 완료
-                                                    </button>
-                                                </div>
-                                            </motion.div>
-                                        </>
-                                    )}
-                                </AnimatePresence>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setShowCalendar(false);
+                                                            }}
+                                                            className="w-full py-5 bg-[#2d241a] text-white rounded-[24px] font-black text-base shadow-xl hover:bg-stone-800 transition-all active:scale-[0.98] cursor-pointer"
+                                                        >
+                                                            선택 완료
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             </div>
-                            <div className="flex-1 min-w-0 space-y-2 text-left w-full md:w-auto">
-                                <label className="text-sm font-bold text-white uppercase ml-2 tracking-wide">인원</label>
-                                <div className="grid grid-cols-2 gap-2 h-[64px]">
-                                    <div className="relative group h-full">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-white/90 uppercase tracking-tight pointer-events-none">성인</div>
-                                        <input
-                                            type="number"
-                                            min="1" max="10"
-                                            value={people}
-                                            onChange={e => setPeople(e.target.value)}
-                                            className="w-full h-full bg-white/10 border border-white/20 rounded-2xl pl-10 pr-2 text-white text-right pr-4 font-bold focus:bg-white/20 focus:outline-none transition-all"
-                                        />
+                            <div className="flex-[1.9] min-w-0 space-y-2 text-left w-full md:w-auto relative">
+                                <label className="text-lg font-black text-white uppercase ml-4 tracking-widest">인원 및 객실</label>
+                                <div
+                                    onClick={() => {
+                                        setShowGuestPopover(!showGuestPopover);
+                                        setShowRegionPopover(false);
+                                        setShowCalendar(false);
+                                    }}
+                                    className="relative h-[84px] bg-white/10 border border-white/20 rounded-2xl px-6 flex items-center justify-between group cursor-pointer transition-all hover:bg-white/20"
+                                >
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-black text-xl leading-tight whitespace-nowrap">
+                                            {`객실 ${rooms}, 성인 ${people}, 어린이 ${children}, 반려견 ${dogs}`}
+                                        </span>
                                     </div>
-                                    <div className="relative group h-full">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black text-white/90 uppercase tracking-tight pointer-events-none">반려견</div>
-                                        <input
-                                            type="number"
-                                            min="1" max="5"
-                                            value={dogs}
-                                            onChange={e => setDogs(e.target.value)}
-                                            className="w-full h-full bg-white/10 border border-white/20 rounded-2xl pl-12 pr-2 text-white text-right pr-4 font-bold focus:bg-white/20 focus:outline-none transition-all"
-                                        />
+                                    <div className={`transition-transform duration-300 ${showGuestPopover ? 'rotate-180' : ''}`}>
+                                        <Plus size={20} className="text-white/70" strokeWidth={3} />
                                     </div>
+
+                                    {/* Trip.com Style Guest Popover */}
+                                    <AnimatePresence>
+                                        {showGuestPopover && (
+                                            <>
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setShowGuestPopover(false);
+                                                    }}
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                                                    className="absolute top-full mt-4 right-0 z-50 bg-white shadow-[0_30px_70px_rgba(0,0,0,0.3)] border border-stone-100 rounded-[32px] p-8 w-[360px]"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="space-y-8">
+                                                        {/* Stepper Component Internal Helper */}
+                                                        {[
+                                                            { label: '객실', sub: '', val: rooms, set: setRooms, min: 1, max: 8 },
+                                                            { label: '성인', sub: '(18세 이상)', val: people, set: setPeople, min: 1, max: 12 },
+                                                            { label: '어린이', sub: '(17세 이하)', val: children, set: setChildren, min: 0, max: 8 },
+                                                            { label: '반려견', sub: '', val: dogs, set: setDogs, min: 1, max: 5 },
+                                                        ].map((item, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[#2d241a] font-black text-lg leading-none">{item.label}</span>
+                                                                    {item.sub && <span className="text-stone-400 font-bold text-xs uppercase tracking-tighter">{item.sub}</span>}
+                                                                </div>
+                                                                <div className="flex items-center gap-5">
+                                                                    <button
+                                                                        onClick={() => item.set(Math.max(item.min, parseInt(item.val) - 1).toString())}
+                                                                        disabled={parseInt(item.val) <= item.min}
+                                                                        className={`w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all active:scale-90 ${parseInt(item.val) <= item.min ? 'border-stone-100 text-stone-200' : 'border-stone-200 text-[#ff3253] hover:border-[#ff3253]'}`}
+                                                                    >
+                                                                        <Minus size={16} strokeWidth={3} />
+                                                                    </button>
+                                                                    <span className="text-[#2d241a] font-black text-xl w-6 text-center">{item.val}</span>
+                                                                    <button
+                                                                        onClick={() => item.set(Math.min(item.max, parseInt(item.val) + 1).toString())}
+                                                                        disabled={parseInt(item.val) >= item.max}
+                                                                        className={`w-10 h-10 flex items-center justify-center rounded-full border-2 transition-all active:scale-90 ${parseInt(item.val) >= item.max ? 'border-stone-100 text-stone-200' : 'border-stone-200 text-[#ff3253] hover:border-[#ff3253]'}`}
+                                                                    >
+                                                                        <Plus size={16} strokeWidth={3} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+
+                                                        <button
+                                                            onClick={() => setShowGuestPopover(false)}
+                                                            className="w-full py-4 bg-[#FF3253] text-white rounded-2xl font-black text-lg shadow-lg hover:shadow-pink-200 transition-all active:scale-[0.98]"
+                                                        >
+                                                            확인
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                             <div className="w-full md:w-auto">
                                 <button
                                     onClick={handleSearch}
-                                    className="w-full md:w-[140px] h-[64px] bg-[#FF3253] hover:bg-[#ff1f43] text-white rounded-[20px] font-black text-lg shadow-xl hover:shadow-pink-500/40 transition-all flex items-center justify-center gap-2 group active:scale-95"
+                                    className="w-full md:w-[180px] h-[84px] bg-[#FF3253] hover:bg-[#ff1f43] text-white rounded-[28px] font-black text-2xl shadow-xl hover:shadow-pink-500/40 transition-all flex items-center justify-center gap-3 group active:scale-95"
                                 >
                                     <span>검색</span>
-                                    <Search className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                    <Search className="w-7 h-7 group-hover:rotate-12 transition-transform" />
                                 </button>
                             </div>
                         </div>
 
                         {/* AI Requirement Input with Animated Placeholder */}
-                        <div className="relative max-w-2xl mx-auto group">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-400 group-focus-within:animate-pulse z-10">
-                                <Sparkles size={18} />
+                        <div className="relative max-w-5xl mx-auto group">
+                            <div className="absolute left-6 top-1/2 -translate-y-1/2 text-pink-400 z-10">
+                                <Search size={18} />
                             </div>
                             <div className="relative">
                                 <input
                                     type="text"
                                     value={conditions}
                                     onChange={e => setConditions(e.target.value)}
-                                    className="w-full bg-white/15 border border-white/30 rounded-full py-4 pl-14 pr-6 text-white focus:bg-white/25 focus:outline-none focus:ring-2 focus:ring-pink-500/40 transition-all font-bold text-sm md:text-base backdrop-blur-md"
+                                    className="w-full bg-white/15 border border-white/30 rounded-full py-7 pl-14 px-10 text-white focus:bg-white/25 focus:outline-none focus:ring-2 focus:ring-pink-500/40 transition-all font-black text-xl md:text-2xl backdrop-blur-md"
                                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                 />
                                 {!conditions && (
-                                    <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-white/70 font-bold text-sm md:text-base">
+                                    <div className="absolute left-14 top-1/2 -translate-y-1/2 pointer-events-none flex items-center text-white/70 font-black text-xl md:text-2xl gap-2">
                                         <span className="whitespace-nowrap">아이와 함께하고 싶은 특별한 요청사항이 있나요? </span>
-                                        <div className="relative inline-block min-w-[350px] h-6 overflow-hidden">
+                                        <div className="relative flex items-center min-w-[600px] h-10 overflow-hidden">
                                             <AnimatePresence mode="wait">
                                                 <motion.span
                                                     key={placeholderIndex}
@@ -427,9 +509,9 @@ export default function TravelLanding() {
                                                     animate={{ y: 0, opacity: 1 }}
                                                     exit={{ y: -30, opacity: 0 }}
                                                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                                                    className="absolute left-0 top-0 whitespace-nowrap"
+                                                    className="whitespace-nowrap pt-1"
                                                 >
-                                                    &nbsp;&nbsp;&nbsp;({AI_EXAMPLES[placeholderIndex]})
+                                                    ({AI_EXAMPLES[placeholderIndex]})
                                                 </motion.span>
                                             </AnimatePresence>
                                         </div>
@@ -442,7 +524,7 @@ export default function TravelLanding() {
             </section>
 
             {/* 2. LOWER SECTION (Light Theme) */}
-            <main className="container mx-auto max-w-5xl px-4 py-24">
+            <main className="container mx-auto max-w-7xl px-4 py-24">
                 {/* Trending Section */}
                 <section className="mb-24">
                     <div className="flex items-center justify-between mb-8">
@@ -452,47 +534,78 @@ export default function TravelLanding() {
                         <a href="#" className="text-[#8b7355] text-sm font-bold hover:text-pink-500 transition-colors">더 보기 &gt;</a>
                     </div>
 
-                    <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4">
-                        {isTrendingLoading ? (
-                            [1, 2, 3, 4].map((i) => (
-                                <div key={i} className="min-w-[260px] h-[360px] rounded-[32px] bg-stone-100 animate-pulse" />
-                            ))
-                        ) : (
-                            trendingPlaces.map((item, idx) => (
-                                <div
-                                    key={idx}
-                                    className="min-w-[280px] h-[380px] rounded-[40px] relative overflow-hidden group cursor-pointer shadow-xl shadow-stone-200/50 hover:shadow-2xl transition-all hover:-translate-y-2 border border-white"
-                                    onClick={() => {
-                                        const params = new URLSearchParams({
-                                            region: item.address?.split(' ')[0] || item.title,
-                                            placeId: item.id
-                                        });
-                                        router.push(`/travel/map?${params.toString()}`);
-                                    }}
-                                >
-                                    <img
-                                        src={item.imageUrl || 'https://images.unsplash.com/photo-1544256273-dfdcfaaf8095?q=80&w=400&auto=format&fit=crop'}
-                                        alt={item.name}
-                                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                    <div className="relative group/trending">
+                        <div
+                            ref={trendingScrollRef}
+                            className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            <style jsx>{`
+                                div::-webkit-scrollbar {
+                                    display: none;
+                                }
+                            `}</style>
+                            {isTrendingLoading ? (
+                                [1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="min-w-[280px] h-[380px] rounded-[40px] bg-stone-100 animate-pulse" />
+                                ))
+                            ) : (
+                                trendingPlaces.map((item, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="min-w-[280px] h-[380px] rounded-[40px] relative overflow-hidden group cursor-pointer shadow-xl shadow-stone-200/50 hover:shadow-2xl transition-all hover:-translate-y-2 border border-white snap-start"
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                region: item.address?.split(' ')[0] || item.title,
+                                                placeId: item.id
+                                            });
+                                            router.push(`/travel/map?${params.toString()}`);
+                                        }}
+                                    >
+                                        <img
+                                            src={item.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop'}
+                                            alt={item.name}
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop';
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
 
-                                    <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md text-[#ff3253] text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
-                                        <Stars size={12} className="fill-[#ff3253]" />
-                                        추천
-                                    </div>
+                                        <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md text-[#ff3253] text-[10px] font-black px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5">
+                                            <div className="w-1.5 h-1.5 bg-[#ff3253] rounded-full animate-pulse" />
+                                            {item.isPetFriendly ? item.category : '추천'}
+                                        </div>
 
-                                    <div className="absolute bottom-8 left-8 right-8 text-white">
-                                        <h4 className="text-2xl font-bold leading-tight mb-2 line-clamp-2 drop-shadow-md">{item.title}</h4>
-                                        <p className="text-white/90 text-sm font-medium mb-3 line-clamp-1">{item.customDesc || item.category}</p>
-                                        <div className="flex items-center gap-3">
-                                            <span className="bg-pink-500 text-white text-xs font-bold px-2 py-1 rounded-md">{item.rating || '9.8'}</span>
-                                            <span className="text-xs text-white/90 font-medium">리뷰 {item.reviews || '500+'}개</span>
+                                        <div className="absolute bottom-8 left-8 right-8 text-white">
+                                            <h4 className="text-2xl font-bold leading-tight mb-2 line-clamp-2 drop-shadow-md">{item.title}</h4>
+                                            <p className="text-white/90 text-sm font-medium mb-3 line-clamp-1">{item.customDesc || item.category}</p>
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {item.tags?.map((tag: string, tagIdx: number) => (
+                                                    <span key={tagIdx} className="text-[10px] font-bold text-white/90 bg-white/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
-                        )}
+                                ))
+                            )}
+                        </div>
+
+                        {/* Arrows */}
+                        <button
+                            onClick={() => scrollTrending('left')}
+                            className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full flex items-center justify-center text-[#2d241a] hover:text-[#ff3253] transition-all z-10 border border-stone-100"
+                        >
+                            <ChevronLeft size={24} strokeWidth={3} />
+                        </button>
+                        <button
+                            onClick={() => scrollTrending('right')}
+                            className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-xl rounded-full flex items-center justify-center text-[#2d241a] hover:text-[#ff3253] transition-all z-10 border border-stone-100"
+                        >
+                            <ChevronRight size={24} strokeWidth={3} />
+                        </button>
                     </div>
                 </section>
 
@@ -528,7 +641,7 @@ export default function TravelLanding() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {isPicksLoading ? (
                             Array.from({ length: 3 }).map((_, i) => (
                                 <div key={i} className="h-[320px] rounded-[32px] bg-stone-100 animate-pulse" />
@@ -536,7 +649,7 @@ export default function TravelLanding() {
                         ) : (
                             dodamPicks
                                 .find(cat => cat.id === activePickTab)
-                                ?.items.map((item: any, idx: number) => (
+                                ?.items.slice(0, 4).map((item: any, idx: number) => (
                                     <div
                                         key={idx}
                                         onClick={() => {
@@ -571,7 +684,7 @@ export default function TravelLanding() {
                                                     {item.title}
                                                 </h4>
                                                 <div className="flex items-center gap-1 bg-stone-100 px-2 py-1 rounded-lg">
-                                                    <Stars size={12} className="fill-yellow-400 text-yellow-400" />
+                                                    <span className="text-yellow-400">★</span>
                                                     <span className="text-xs font-bold text-[#2d241a]">{item.rating}</span>
                                                 </div>
                                             </div>
@@ -587,6 +700,7 @@ export default function TravelLanding() {
                         )}
                     </div>
                 </section>
+
                 {/* Promo Banners */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="relative rounded-[40px] overflow-hidden bg-gradient-to-br from-[#ff5b00] to-[#ff9c00] p-10 shadow-2xl shadow-orange-100 flex items-center justify-between group cursor-pointer hover:scale-[1.02] transition-transform">

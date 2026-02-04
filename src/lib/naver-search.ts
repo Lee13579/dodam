@@ -36,20 +36,26 @@ export interface TransformedPlace {
   // Affiliate Extensions
   price?: number;
   originalPrice?: number;
-  rating?: number;
+  rating?: number | string;
   reviewCount?: number;
   bookingUrl?: string;
   source?: 'NAVER' | 'AGODA' | 'KLOOK';
+  badge?: string;
+  isPetFriendly?: boolean;
 }
 
-export async function searchNaverImages(query: string): Promise<string | null> {
+export async function searchNaverImages(query: string, context?: string): Promise<string | null> {
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) return null;
 
   try {
-    const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(query)}&display=1&sort=sim&filter=medium`, {
+    // Improve query by adding context (e.g., region or "pet friendly")
+    const refinedQuery = context ? `${query} ${context}` : `${query} 업체사진`;
+
+    // Fetch top 5 samples to find a valid direct image link
+    const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(refinedQuery)}&display=5&sort=sim&filter=medium`, {
       method: 'GET',
       headers: {
         'X-Naver-Client-Id': clientId,
@@ -60,7 +66,17 @@ export async function searchNaverImages(query: string): Promise<string | null> {
     if (!response.ok) return null;
 
     const data = await response.json();
-    return data.items[0]?.link || null;
+    if (!data.items || data.items.length === 0) return null;
+
+    // Try to find the best image link among candidates
+    // Prioritize jpg/png/webp for better loading reliability
+    const bestItem = data.items.find((item: any) =>
+      item.link.toLowerCase().includes('.jpg') ||
+      item.link.toLowerCase().includes('.png') ||
+      item.link.toLowerCase().includes('.webp')
+    ) || data.items[0];
+
+    return bestItem?.link || null;
   } catch (error) {
     console.error("Naver Image Search error:", error);
     return null;
@@ -93,20 +109,38 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
 
     // 데이터 변환 및 HTML 태그 제거
     const places = await Promise.all(data.items.map(async (item: NaverPlace, index: number) => {
-      // HTML 태그(<b> 등) 제거
-      const cleanTitle = item.title.replace(/<[^>]*>?/gm, '');
+      // HTML 태그 및 엔티티 제거/치환
+      const cleanTitle = item.title
+        .replace(/<[^>]*>?/gm, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
 
       // 좌표 변환 (String -> Number -> Project -> [lng, lat])
       const [lng, lat] = proj4(KATECH, WGS84, [parseInt(item.mapx), parseInt(item.mapy)]);
 
-      // 이미지 검색 (병렬로 처리하거나 필요할 때만 호출하는 것이 좋지만, 여기서는 간단히 구현)
-      // 주의: 너무 많은 요청은 속도 저하를 유발하므로 상위 몇 개만 하거나 별도 처리가 나음.
-      // 일단 여기서는 이미지 검색을 수행하지 않고, 호출하는 쪽(Route Handler)에서 필요한 경우에만 enrichment 하도록 설계하는게 좋음.
-      // 하지만 편의상 display가 1(단건 최적화)일 땐 이미지도 가져오도록 해봅니다.
+      // 이미지 검색
       let imgUrl = null;
-      if (display <= 3) {
-        imgUrl = await searchNaverImages(cleanTitle);
+      if (display <= 5) {
+        imgUrl = await searchNaverImages(cleanTitle, query);
       }
+
+      const isPetFriendly = item.category.includes('반려동물') ||
+        item.category.includes('애견') ||
+        item.category.includes('반려견') ||
+        cleanTitle.includes('애견') ||
+        cleanTitle.includes('반려견');
+
+      // 고해상도 반려견 테마 플레이스홀더들 (이미지 검색 실패 시 다양성 확보)
+      const dogPlaceholders = [
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1514373941175-0a1410629e71?q=80&w=800&auto=format&fit=crop',
+        'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=800&auto=format&fit=crop'
+      ];
 
       return {
         id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
@@ -118,7 +152,8 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         lng: lng,
         description: item.category,
         link: item.link,
-        imageUrl: imgUrl || undefined
+        imageUrl: imgUrl || dogPlaceholders[index % dogPlaceholders.length],
+        isPetFriendly: isPetFriendly
       };
     }));
 
@@ -130,10 +165,25 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
   }
 }
 
-// 네이버 카테고리 문자열을 우리 앱의 카테고리로 단순화
+// 네이버 카테고리 문자열을 우리 앱의 카테고리로 단순화 및 반려견 특성 추출 (UI 노출용 한국어)
 function formatCategory(naverCategory: string): string {
-  if (naverCategory.includes('카페') || naverCategory.includes('디저트')) return 'Cafe';
-  if (naverCategory.includes('호텔') || naverCategory.includes('숙박') || naverCategory.includes('펜션') || naverCategory.includes('캠핑')) return 'Hotel';
-  if (naverCategory.includes('공원') || naverCategory.includes('산책') || naverCategory.includes('유원지')) return 'Park';
-  return 'Restaurant'; // 기본값
+  // 반려동물 공식 분류 우선 체크 (네이버 분류 체계 기준)
+  if (naverCategory.includes('반려동물') || naverCategory.includes('애견') || naverCategory.includes('반려견')) {
+    if (naverCategory.includes('카페')) return '애견 카페';
+    if (naverCategory.includes('호텔') || naverCategory.includes('펜션') || naverCategory.includes('숙박')) return '애견 숙소';
+    if (naverCategory.includes('병원')) return '동물 병원';
+    if (naverCategory.includes('운동장') || naverCategory.includes('공원') || naverCategory.includes('놀이터')) return '애견 운동장';
+    if (naverCategory.includes('미용') || naverCategory.includes('살롱')) return '애견 미용';
+    if (naverCategory.includes('식당') || naverCategory.includes('음식점')) return '반려견 동반 식당';
+    if (naverCategory.includes('용품')) return '반려용품점';
+    return '반려동물 동반';
+  }
+
+  // 일반 카테고리 폴백
+  if (naverCategory.includes('카페') || naverCategory.includes('디저트')) return '카페';
+  if (naverCategory.includes('호텔') || naverCategory.includes('숙박') || naverCategory.includes('펜션') || naverCategory.includes('캠핑')) return '숙소';
+  if (naverCategory.includes('공원') || naverCategory.includes('산책') || naverCategory.includes('유원지')) return '공원/산책';
+  if (naverCategory.includes('음식점') || naverCategory.includes('뷔페') || naverCategory.includes('레스토랑')) return '음식점';
+
+  return '장소'; // 기본값
 }

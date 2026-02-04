@@ -21,6 +21,7 @@ export interface Place {
     reviewCount?: number;
     bookingUrl?: string;
     source?: 'NAVER' | 'AGODA' | 'KLOOK';
+    badge?: string;
 }
 
 interface TravelMapProps {
@@ -136,7 +137,6 @@ const TravelMap: React.FC<TravelMapProps> = ({
                         ) : (
                             <>
                                 <span>코스 적용하기</span>
-                                <Stars className="w-3 h-3 text-pink-400" />
                             </>
                         )}
                     </button>
@@ -185,19 +185,20 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                         onMouseLeave={() => onHoverPlace?.(null)}
                                     >
                                         {/* Affiliate Badge */}
-                                        {place.source === 'AGODA' && (
-                                            <div className="inline-block bg-blue-100 text-blue-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">AGODA 특가</div>
-                                        )}
-                                        {place.source === 'KLOOK' && (
-                                            <div className="inline-block bg-orange-100 text-orange-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">KLOOK 액티비티</div>
+                                        {(place.source === 'AGODA' || place.source === 'KLOOK') && (
+                                            <div className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2 ${place.source === 'AGODA' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                                                }`}>
+                                                {place.badge || (place.source === 'AGODA' ? 'AGODA 특가' : 'KLOOK 액티비티')}
+                                            </div>
                                         )}
                                         {place.source === 'NAVER' && (
-                                            <div className="inline-block bg-green-100 text-green-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">NAVER 추천</div>
+                                            <div className="inline-block bg-green-100 text-green-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">NAVER SmartPlace</div>
                                         )}
 
                                         <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-col">
                                                 <h4 className="text-sm font-extrabold text-[#2d241a] line-clamp-1">{place.name}</h4>
+                                                {place.category && <span className="text-[10px] text-stone-400 font-bold">{place.category}</span>}
                                             </div>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); onRemovePlace(place.id, index); }}
@@ -209,20 +210,33 @@ const TravelMap: React.FC<TravelMapProps> = ({
 
                                         {/* Image (Optional) */}
                                         {place.imageUrl && (
-                                            <div className="w-full h-24 mb-3 rounded-xl overflow-hidden shadow-sm">
+                                            <div className="w-full h-28 mb-3 rounded-xl overflow-hidden shadow-sm relative group-hover:shadow-md transition-all">
                                                 <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
+                                                {place.originalPrice && place.price && (
+                                                    <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                                                        {Math.round((place.originalPrice - place.price) / place.originalPrice * 100)}% OFF
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
                                         {/* Price & Rating */}
                                         {(place.price || place.rating) && (
-                                            <div className="flex items-center justify-between text-xs mb-3 font-bold text-stone-600 bg-stone-50 p-2 rounded-lg">
-                                                {place.price && (
-                                                    <span className="text-pink-600">₩{place.price.toLocaleString()}</span>
+                                            <div className="flex items-center justify-between text-xs mb-3 font-bold text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-100">
+                                                {place.price ? (
+                                                    <div className="flex flex-col">
+                                                        {place.originalPrice && (
+                                                            <span className="text-[10px] text-stone-400 line-through">₩{place.originalPrice.toLocaleString()}</span>
+                                                        )}
+                                                        <span className="text-pink-600 text-sm font-black">₩{place.price.toLocaleString()}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-stone-400 text-[10px]">가격 정보 없음</span>
                                                 )}
+
                                                 {place.rating && (
-                                                    <span className="flex items-center gap-1 text-yellow-500">
-                                                        <Stars size={10} fill="currentColor" /> {place.rating}
+                                                    <span className="flex items-center gap-1 text-yellow-500 bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-stone-50">
+                                                        <span className="text-yellow-500">★</span> {place.rating}
                                                     </span>
                                                 )}
                                             </div>
@@ -236,9 +250,10 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                                 href={place.bookingUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="block w-full text-center py-2 rounded-xl bg-[#2d241a] text-white text-xs font-bold hover:bg-black transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#2d241a] text-white text-xs font-bold hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md"
                                             >
-                                                예약 / 예매하러 가기 <ExternalLink size={10} className="inline ml-1" />
+                                                최저가 예약하기 <ExternalLink size={10} className="inline ml-1.5" />
                                             </a>
                                         )}
                                     </div>
