@@ -117,7 +117,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, dogN
                     </h3>
 
                     <p className="text-stone-600 text-xl leading-relaxed font-medium italic whitespace-pre-line">
-                        "{analysis}"
+                        &quot;{analysis}&quot;
                     </p>
                 </motion.div>
 
