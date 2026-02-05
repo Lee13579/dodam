@@ -3,8 +3,38 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 declare global {
+    interface NaverMaps {
+        LatLng: new (lat: number, lng: number) => unknown;
+        LatLngBounds: new () => { extend: (point: unknown) => void };
+        Position: { TOP_RIGHT: unknown };
+        Map: new (element: HTMLElement, options: Record<string, unknown>) => {
+            fitBounds: (bounds: unknown, padding?: Record<string, number>) => void;
+        };
+        Marker: new (options: Record<string, unknown>) => {
+            setMap: (map: unknown) => void;
+            setAnimation: (animation: unknown) => void;
+            setZIndex: (zIndex: number) => void;
+        };
+        Point: new (x: number, y: number) => unknown;
+        InfoWindow: new (options: Record<string, unknown>) => {
+            open: (map: unknown, marker: unknown) => void;
+        };
+        Event: {
+            addListener: (target: unknown, event: string, handler: () => void) => void;
+        };
+        Polyline: new (options: Record<string, unknown>) => {
+            setMap: (map: unknown) => void;
+        };
+        Animation: {
+            DROP: unknown;
+            BOUNCE: unknown;
+        };
+    }
+
     interface Window {
-        naver: any;
+        naver: {
+            maps?: NaverMaps;
+        };
     }
 }
 
@@ -38,7 +68,8 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
 
         const initMap = () => {
             // Check if SDK is available
-            if (!window.naver || !window.naver.maps) {
+            const maps = window.naver?.maps;
+            if (!maps) {
                 retryCount++;
                 if (retryCount >= maxRetries) {
                     setMapError('네이버 지도 SDK 로드 실패. 인터넷 연결이나 Client ID 설정을 확인해주세요.');
@@ -60,17 +91,17 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
 
             try {
                 const mapOptions = {
-                    center: new window.naver.maps.LatLng(37.5665, 126.978),
+                    center: new maps.LatLng(37.5665, 126.978),
                     zoom: 12,
                     zoomControl: true,
                     zoomControlOptions: {
-                        position: window.naver.maps.Position.TOP_RIGHT,
+                        position: maps.Position.TOP_RIGHT,
                     },
                     logoControl: false,
                     mapDataControl: false,
                 };
 
-                mapInstance.current = new window.naver.maps.Map(mapRef.current, mapOptions);
+                mapInstance.current = new maps.Map(mapRef.current, mapOptions);
                 setIsMapLoaded(true);
                 return true;
             } catch (e: any) {
@@ -102,7 +133,8 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
 
     // Effect: Update markers
     useEffect(() => {
-        if (!isMapLoaded || !mapInstance.current || !window.naver?.maps) return;
+        const maps = window.naver?.maps;
+        if (!isMapLoaded || !mapInstance.current || !maps) return;
 
         // Clear existing
         markerInstances.current.forEach((marker) => marker.setMap(null));
@@ -113,17 +145,17 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
         }
 
         const path: any[] = [];
-        const bounds = new window.naver.maps.LatLngBounds();
+        const bounds = new maps.LatLngBounds();
 
         markers.forEach((marker, index) => {
-            const position = new window.naver.maps.LatLng(marker.lat, marker.lng);
+            const position = new maps.LatLng(marker.lat, marker.lng);
             path.push(position);
             bounds.extend(position);
 
             const isAffiliate = marker.source === 'AGODA' || marker.source === 'KLOOK';
             const markerColor = isAffiliate ? '#ec4899' : '#8B7355'; // Pink for Affiliate, Brown/Gold for Naver
 
-            const newMarker = new window.naver.maps.Marker({
+            const newMarker = new maps.Marker({
                 position: position,
                 map: mapInstance.current,
                 title: marker.title,
@@ -136,7 +168,7 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                             <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 border-r border-b border-white" style="background-color: ${markerColor}"></div>
                         </div>
                     `,
-                    anchor: new window.naver.maps.Point(16, 36),
+                    anchor: new maps.Point(16, 36),
                 },
                 zIndex: 100 + index
             });
@@ -160,15 +192,15 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                 </div>
             `;
 
-            const infoWindow = new window.naver.maps.InfoWindow({
+            const infoWindow = new maps.InfoWindow({
                 content: infoWindowContent,
                 borderWidth: 0,
                 backgroundColor: "transparent",
                 disableAnchor: true,
-                pixelOffset: new window.naver.maps.Point(0, -10)
+                pixelOffset: new maps.Point(0, -10)
             });
 
-            window.naver.maps.Event.addListener(newMarker, "click", () => {
+            maps.Event.addListener(newMarker, "click", () => {
                 // If it's already open, close it? Or just keep opening (standard map behavior)
                 // Let's maximize focus
                 infoWindow.open(mapInstance.current, newMarker);
@@ -186,9 +218,9 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                 polylineInstance.current.setMap(null);
             }
 
-            const linePath = markers.map(m => new window.naver.maps.LatLng(m.lat, m.lng));
+            const linePath = markers.map(m => new maps.LatLng(m.lat, m.lng));
 
-            polylineInstance.current = new window.naver.maps.Polyline({
+            polylineInstance.current = new maps.Polyline({
                 map: mapInstance.current,
                 path: linePath,
                 strokeColor: '#ec4899',
@@ -209,11 +241,12 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
 
     // Effect: Handle Highlight
     useEffect(() => {
-        if (!isMapLoaded || !focusedId) return;
+        const maps = window.naver?.maps;
+        if (!isMapLoaded || !focusedId || !maps) return;
 
         const marker = markerInstances.current.get(focusedId);
         if (marker) {
-            marker.setAnimation(window.naver.maps.Animation.BOUNCE);
+            marker.setAnimation(maps.Animation.BOUNCE);
             marker.setZIndex(999);
             // Optional: Pan to marker
             // mapInstance.current.panTo(marker.getPosition());
