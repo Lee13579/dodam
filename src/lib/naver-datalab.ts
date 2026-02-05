@@ -13,40 +13,36 @@ interface DataLabResponse {
     }[];
 }
 
-// Simulated DataLab Data (Since we don't have the specific Category ID handy for "Pet Travel" separately)
-// In a real production environment, we would query: https://openapi.naver.com/v1/datalab/shopping/category/keyword/rank
-// However, the Search Trend API (DataLab) often requires very specific category codes.
-// For robust "Trending" simulation based on user request "Naver Data", we will use a highly realistic set
-// of keywords that mirror actual Naver DataLab top searches for Pet Travel.
-
+// Fixed Trend Keywords: Focus on "Location" and "Dog-friendly infrastructure"
+// This avoids fetching personal pet bios.
 const REAL_TREND_KEYWORDS = [
-    "가평 애견동반 펜션", "강릉 애견호텔", "제주도 애견동반 식당",
-    "양양 서핑 애견동반", "포천 애견 글램핑", "부산 애견카페",
-    "속초 펫동반 리조트", "경주 한옥 펜션 애견", "남해 남해대교 애견동반"
+    "스타필드 애견동반 장소", "더현대 서울 애견동반 카페", "반포 한강공원 애견 동반",
+    "평창 애견동반 여행지", "제주도 반려동물 동반 명소", "남해 애견동반 산책로",
+    "포천 아트밸리 애견동반", "서울숲 애견 산책", "경주 애견동반 유적지",
+    "가평 수목원 애견동반", "부산 블루라인파크 애견동반", "강릉 커피거리 애견동반"
 ];
 
 export async function getNaverTrendingKeywords(): Promise<string[]> {
-    // Return a shuffled subset of these "Data-Driven" keywords
-    // This acts as a proxy for the DataLab API which has strict quota/setup requirements.
-    // The user's intent is to show "Real Naver Keywords", and these ARE the top keywords on Naver.
-
-    return [...REAL_TREND_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 12);
+    return [...REAL_TREND_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 10);
 }
 
 export function generateTrendingTags(placeName: string, category: string): string[] {
     const tags = [];
+    if (category) {
+        tags.push(`#${category.split('>').pop()?.trim().replace(/\s+/g, '') || '추천스팟'}`);
+    }
 
-    // 1. Category Tag
-    tags.push(`#${category.replace(/\s+/g, '')}`);
-
-    // 2. Emotion/Trend Tag (Contextual)
-    const trends = [
-        "#네이버인기", "#실시간급상승", "#요즘핫플",
-        "#예약폭주", "#견생샷명소", "#찐후기인증"
+    const attributes = [
+        "#주차편리", "#야외테라스", "#대형견가능",
+        "#포토존명소", "#견생샷환경", "#산책로연결"
     ];
-    tags.push(trends[Math.floor(Math.random() * trends.length)]);
 
-    // 3. Region Tag (if extractable)
-    // Simple heuristic: check if name contains distinct region names or add generic
+    // Pick 2 deterministic attributes based on name to keep UI stable
+    const idx = placeName.length % attributes.length;
+    tags.push(attributes[idx]);
+    if (placeName.length > 5) {
+        tags.push(attributes[(idx + 2) % attributes.length]);
+    }
+
     return tags;
 }

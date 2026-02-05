@@ -28,7 +28,7 @@ export async function GET() {
                         return {
                             ...petFriendlyPlace,
                             // Use the keyword itself to describe the trend
-                            customDesc: `🔥 요즘 뜨는 "${keyword}"`,
+                            customDesc: `요즘 뜨는 "${keyword}"`,
                             tags: tags,
                         };
                     }

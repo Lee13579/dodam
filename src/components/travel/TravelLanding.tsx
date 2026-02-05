@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Calendar, Trees, Plus, Minus, ChevronLeft, ChevronRight, Dog } from 'lucide-react';
+import { Search, MapPin, Calendar, Trees, Plus, Minus, ChevronLeft, ChevronRight, Dog, Heart, Star } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -75,7 +75,7 @@ export default function TravelLanding() {
 
     const scrollTrending = (direction: 'left' | 'right') => {
         if (trendingScrollRef.current) {
-            const cardWidth = 280 + 24; // Card width (280) + gap (24)
+            const cardWidth = 260 + 24; // Card width (260) + gap (24 - gap-6)
             const currentScroll = trendingScrollRef.current.scrollLeft;
 
             // Calculate next scroll position based on current scroll position
@@ -203,7 +203,7 @@ export default function TravelLanding() {
 
                     {/* Content */}
                     <div className="relative z-10 mt-12 flex flex-col gap-3">
-                        <h1 className="text-white text-4xl md:text-5xl font-extrabold leading-[1.1] tracking-tight drop-shadow-lg">
+                        <h1 className="text-white text-4xl md:text-5xl font-bold font-outfit leading-[1.1] tracking-tight drop-shadow-lg">
                             반려견과 함께하는<br />특별한 여행
                         </h1>
                         <p className="text-white/90 text-base md:text-lg font-medium drop-shadow-md">
@@ -216,10 +216,10 @@ export default function TravelLanding() {
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="relative z-10 mt-auto mb-4 w-full max-w-3xl bg-white/85 backdrop-blur-xl dark:bg-[#221016]/85 rounded-3xl p-5 shadow-2xl border border-white/20 flex flex-col gap-3"
+                        className="relative z-10 mt-auto mb-4 w-full max-w-3xl bg-white/80 backdrop-blur-2xl dark:bg-[#221016]/80 rounded-3xl p-5 shadow-2xl border border-white/20 flex flex-col gap-3"
                     >
                         {/* Destination Input */}
-                        <div className="flex items-center gap-3 bg-white/50 dark:bg-black/10 rounded-2xl p-4 border border-white/40 hover:border-pink-300 transition-colors group cursor-pointer relative">
+                        <div className="flex items-center gap-3 bg-white/30 dark:bg-black/10 rounded-2xl p-4 border border-white/20 hover:border-pink-300 transition-colors group cursor-pointer relative">
                             <MapPin className="text-[#ee2b6c] w-6 h-6 group-hover:scale-110 transition-transform" />
                             <div className="flex-1 text-left">
                                 <label className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5 tracking-wider">여행지</label>
@@ -269,7 +269,7 @@ export default function TravelLanding() {
 
                         <div className="flex flex-col md:flex-row gap-3">
                             {/* Date Picker Trigger */}
-                            <div onClick={() => setShowCalendar(true)} className="flex-1 flex items-center gap-3 bg-white/50 dark:bg-black/10 rounded-2xl p-4 border border-white/40 hover:border-pink-300 transition-colors cursor-pointer group">
+                            <div onClick={() => setShowCalendar(true)} className="flex-1 flex items-center gap-3 bg-white/30 dark:bg-black/10 rounded-2xl p-4 border border-white/20 hover:border-pink-300 transition-colors cursor-pointer group">
                                 <Calendar className="text-[#ee2b6c] w-6 h-6 group-hover:scale-110 transition-transform" />
                                 <div className="text-left">
                                     <label className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5 tracking-wider">일정</label>
@@ -330,7 +330,7 @@ export default function TravelLanding() {
                             </AnimatePresence>
 
                             {/* Guest Counter Trigger */}
-                            <div onClick={() => setShowGuestPopover(true)} className="flex-1 flex items-center gap-3 bg-white/50 dark:bg-black/10 rounded-2xl p-4 border border-white/40 hover:border-pink-300 transition-colors cursor-pointer group relative">
+                            <div onClick={() => setShowGuestPopover(true)} className="flex-1 flex items-center gap-3 bg-white/30 dark:bg-black/10 rounded-2xl p-4 border border-white/20 hover:border-pink-300 transition-colors cursor-pointer group relative">
                                 <Search className="text-[#ee2b6c] w-6 h-6 group-hover:scale-110 transition-transform" />
                                 {/* NOTE: Using Search icon as placeholder for Guests if Users/Dog icon not desired, but Users is better */}
                                 <div className="text-left">
@@ -373,13 +373,15 @@ export default function TravelLanding() {
                             </div>
                         </div>
 
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.01, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleSearch}
-                            className="bg-[#ee2b6c] hover:bg-[#d01b55] text-white font-bold h-14 rounded-2xl shadow-lg shadow-[#ee2b6c]/30 flex items-center justify-center gap-2 transition-all active:scale-[0.98] text-lg mt-1"
+                            className="bg-[#ee2b6c] hover:bg-[#d01b55] text-white font-bold h-14 rounded-2xl shadow-lg shadow-[#ee2b6c]/30 flex items-center justify-center gap-2 transition-all text-lg mt-1"
                         >
                             <Search size={20} />
                             검색하기
-                        </button>
+                        </motion.button>
 
                         {/* AI Requirement Input */}
                         <div className="relative w-full group">
@@ -390,7 +392,7 @@ export default function TravelLanding() {
                                 type="text"
                                 value={conditions}
                                 onChange={e => setConditions(e.target.value)}
-                                className="w-full bg-white/60 dark:bg-black/20 border border-white/40 rounded-xl py-3 pl-10 pr-4 text-sm font-bold text-[#1b0d12] placeholder:text-gray-500 backdrop-blur-sm focus:bg-white/80 focus:outline-none focus:ring-2 focus:ring-[#ee2b6c]/30 transition-all"
+                                className="w-full bg-white/40 dark:bg-black/20 border border-white/20 rounded-xl py-3 pl-10 pr-4 text-sm font-bold text-[#1b0d12] placeholder:text-gray-500 backdrop-blur-sm focus:bg-white/70 focus:outline-none focus:ring-2 focus:ring-[#ee2b6c]/30 transition-all font-sans"
                                 placeholder={`"${AI_EXAMPLES[placeholderIndex]}" 처럼 검색해보세요`}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             />
@@ -402,8 +404,8 @@ export default function TravelLanding() {
             {/* 2. TRENDING DESTINATIONS */}
             <section className="mt-12 container mx-auto px-4 max-w-7xl">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-[#1b0d12] dark:text-white text-2xl font-extrabold flex items-center gap-2">
-                        🔥 요즘 뜨는 여행지
+                    <h3 className="text-[#1b0d12] dark:text-white text-2xl font-bold font-outfit flex items-center gap-2">
+                        요즘 뜨는 여행지
                     </h3>
                     <button className="text-[#ee2b6c] text-sm font-bold hover:bg-pink-50 px-3 py-1 rounded-full transition-colors">전체보기</button>
                 </div>
@@ -411,13 +413,13 @@ export default function TravelLanding() {
                 <div className="relative group/trending">
                     <div
                         ref={trendingScrollRef}
-                        className="flex overflow-x-auto gap-5 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth"
+                        className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth"
                     >
                         {isTrendingLoading ? (
                             [1, 2, 3, 4].map(i => <div key={i} className="min-w-[260px] h-[320px] bg-gray-100 rounded-[28px] animate-pulse" />)
                         ) : (
                             trendingPlaces.map((item: Place, idx) => (
-                                <div
+                                <motion.div
                                     key={idx}
                                     onClick={() => {
                                         const params = new URLSearchParams({
@@ -426,22 +428,28 @@ export default function TravelLanding() {
                                         });
                                         router.push(`/travel/map?${params.toString()}`);
                                     }}
-                                    className="min-w-[260px] h-[320px] rounded-[28px] overflow-hidden relative group cursor-pointer shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 snap-start bg-white"
+                                    className="min-w-[260px] h-[320px] rounded-[28px] overflow-hidden relative group cursor-pointer shadow-lg transition-all snap-start bg-white"
                                 >
                                     <img
                                         src={item.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop'}
                                         alt={item.title}
-                                        className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
-                                    <span className="absolute top-4 left-4 bg-[#ee2b6c] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                                        Popular
-                                    </span>
-                                    <div className="absolute bottom-6 left-6 right-6 text-white">
-                                        <p className="font-extrabold text-xl mb-1">{item.address?.split(' ')[0] || item.title}</p>
-                                        <p className="text-xs text-white/80 font-medium line-clamp-1">{item.customDesc || '반려견과 함께하는 최고의 여행'}</p>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
+                                    <div className="absolute bottom-6 left-6 right-6 text-white text-left">
+                                        <p className="font-bold text-xl mb-1 font-outfit">{item.address?.split(' ')[0] || item.title}</p>
+                                        <p className="text-xs text-white/80 font-medium line-clamp-1 mb-2">{item.customDesc || '반려견과 함께하는 최고의 여행'}</p>
+                                        {item.tags && item.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {item.tags.slice(0, 2).map((tag, i) => (
+                                                    <span key={i} className="text-[10px] bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-md font-bold">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                </motion.div>
                             ))
                         )}
                     </div>
@@ -458,18 +466,25 @@ export default function TravelLanding() {
             {/* 3. DODAM PICKS */}
             <section className="mt-6 mb-24 container mx-auto px-4 max-w-7xl">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-[#1b0d12] dark:text-white text-2xl font-extrabold">도담&apos;s Pick 🏆</h3>
-                    <div className="flex gap-2">
+                    <h3 className="text-[#1b0d12] dark:text-white text-2xl font-bold font-outfit">도담&apos;s Pick 🏆</h3>
+                    <div className="flex gap-2 bg-gray-100/50 p-1.5 rounded-full border border-gray-100/50">
                         {dodamPicks.map(cat => (
                             <button
                                 key={cat.id}
                                 onClick={() => setActivePickTab(cat.id)}
-                                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${activePickTab === cat.id
-                                    ? 'bg-[#ee2b6c] text-white shadow-md shadow-pink-200'
-                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-colors relative ${activePickTab === cat.id
+                                    ? 'text-white'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
-                                {cat.title.split(' ')[0]}
+                                <span className="relative z-10">{cat.title.split(' ')[0]}</span>
+                                {activePickTab === cat.id && (
+                                    <motion.div
+                                        layoutId="activeTabBackground"
+                                        className="absolute inset-0 bg-[#ee2b6c] rounded-full shadow-md shadow-pink-200/50"
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                )}
                             </button>
                         ))}
                     </div>
@@ -482,7 +497,8 @@ export default function TravelLanding() {
                         dodamPicks
                             .find(cat => cat.id === activePickTab)
                             ?.items.slice(0, 4).map((item: Place, idx: number) => (
-                                <div key={idx} className="flex flex-col gap-3 group cursor-pointer"
+                                <motion.div key={idx}
+                                    className="flex flex-col gap-3 group cursor-pointer"
                                     onClick={() => {
                                         const params = new URLSearchParams({
                                             region: item.address?.split(' ')[0] || item.title,
@@ -491,33 +507,41 @@ export default function TravelLanding() {
                                         router.push(`/travel/map?${params.toString()}`);
                                     }}
                                 >
-                                    <div className="relative h-48 rounded-[24px] overflow-hidden shadow-sm">
+                                    <div className="relative h-48 rounded-[24px] overflow-hidden shadow-sm border border-gray-100">
                                         <img
                                             src={item.imageUrl}
                                             alt={item.title}
-                                            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
-                                        <button className="absolute top-3 right-3 size-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-400 hover:text-[#ee2b6c] hover:scale-110 transition-all">
-                                            <div className="text-lg">❤️</div>
-                                            {/* Using emoji/icon directly */}
+                                        <button className="absolute top-3 right-3 size-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-400 hover:text-[#ee2b6c] hover:scale-110 active:scale-90 transition-all shadow-sm">
+                                            <Heart size={16} />
                                         </button>
                                         <div className="absolute top-3 left-3">
-                                            <span className="bg-white/90 backdrop-blur text-green-700 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                                            <span className="bg-white/70 backdrop-blur text-green-700 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 border border-white/40 shadow-sm">
                                                 <Dog size={10} /> Pet Friendly
                                             </span>
                                         </div>
                                     </div>
                                     <div className="px-1">
                                         <div className="flex justify-between items-start">
-                                            <h4 className="font-bold text-base text-[#1b0d12] line-clamp-1 group-hover:text-[#ee2b6c] transition-colors">{item.title}</h4>
+                                            <h4 className="font-bold text-base text-[#1b0d12] line-clamp-1 group-hover:text-[#ee2b6c] transition-colors font-outfit">{item.title}</h4>
                                             <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded-md border border-yellow-100">
-                                                <span className="text-xs text-yellow-500">★</span>
+                                                <Star size={10} className="fill-yellow-500 text-yellow-500" />
                                                 <span className="text-xs font-bold text-yellow-700">{item.rating}</span>
                                             </div>
                                         </div>
                                         <p className="text-xs text-gray-400 font-medium mt-1 line-clamp-1">{item.address}</p>
+                                        {item.tags && item.tags.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {item.tags.slice(0, 2).map((tag, i) => (
+                                                    <span key={i} className="text-[10px] text-[#ee2b6c] font-bold bg-pink-50 px-1.5 py-0.5 rounded-md">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                </motion.div>
                             ))
                     )}
                 </div>
@@ -525,8 +549,8 @@ export default function TravelLanding() {
 
             {/* 4. PROMOTIONS */}
             <section className="container mx-auto px-4 max-w-7xl mb-24">
-                <h3 className="text-[#1b0d12] dark:text-white text-xl font-bold mb-4 px-1">Special Offers</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <h3 className="text-[#1b0d12] dark:text-white text-xl font-bold mb-4 px-1 font-outfit">Special Offers</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="relative h-48 rounded-[32px] overflow-hidden flex flex-col justify-end p-6 bg-gradient-to-br from-[#FF9C00] to-[#FF5B00] shadow-xl shadow-orange-100 group cursor-pointer hover:scale-[1.01] transition-transform">
                         <div className="relative z-10">
                             <p className="text-white/80 text-xs font-extrabold uppercase tracking-wider mb-2">Early Bird</p>

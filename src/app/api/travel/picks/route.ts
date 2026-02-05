@@ -1,5 +1,6 @@
 
 import { searchNaverPlaces } from "@/lib/naver-search";
+import { generateTrendingTags } from "@/lib/naver-datalab";
 import { NextResponse } from "next/server";
 import fs from 'fs';
 import path from 'path';
@@ -41,7 +42,8 @@ export async function GET() {
                 items: (db[theme.id] || []).slice(0, 6).map((item: any) => ({
                     ...item,
                     // Re-randomize badges slightly to feel dynamic on refresh
-                    badge: item.badge || ['인기', '추천', 'HOT'][Math.floor(Math.random() * 3)]
+                    badge: item.badge || ['인기', '추천', 'HOT'][Math.floor(Math.random() * 3)],
+                    tags: item.tags || generateTrendingTags(item.title, item.category)
                 }))
             }));
 
@@ -63,7 +65,8 @@ export async function GET() {
                         ...place,
                         rating: (9.0 + Math.random()).toFixed(1),
                         reviews: Math.floor(Math.random() * 500) + 100,
-                        badge: ['인기', '추천', 'NEW'][Math.floor(Math.random() * 3)]
+                        badge: ['인기', '추천', 'NEW'][Math.floor(Math.random() * 3)],
+                        tags: generateTrendingTags(place.title, place.category)
                     }))
                 };
             })

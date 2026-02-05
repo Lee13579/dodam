@@ -51,10 +51,9 @@ export async function searchNaverImages(query: string, context?: string): Promis
   if (!clientId || !clientSecret) return null;
 
   try {
-    // Improve query by adding context (e.g., region or "pet friendly")
-    const refinedQuery = context ? `${query} ${context}` : `${query} 업체사진`;
+    // Improve query by adding "place" related context to avoid personal pet photos
+    const refinedQuery = `${query} 업체 사진 인테리어`;
 
-    // Fetch top 5 samples to find a valid direct image link
     const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(refinedQuery)}&display=5&sort=sim&filter=medium`, {
       method: 'GET',
       headers: {
@@ -68,12 +67,12 @@ export async function searchNaverImages(query: string, context?: string): Promis
     const data = await response.json();
     if (!data.items || data.items.length === 0) return null;
 
-    // Try to find the best image link among candidates
-    // Prioritize jpg/png/webp for better loading reliability
+    // Filter for reliable image paths and avoid known "blog card" patterns if any
     const bestItem = data.items.find((item: any) =>
-      item.link.toLowerCase().includes('.jpg') ||
-      item.link.toLowerCase().includes('.png') ||
-      item.link.toLowerCase().includes('.webp')
+      (item.link.toLowerCase().includes('.jpg') ||
+        item.link.toLowerCase().includes('.png') ||
+        item.link.toLowerCase().includes('.webp')) &&
+      !item.link.includes('post.naver.com') // Sometimes mini-cards come from Naver Post
     ) || data.items[0];
 
     return bestItem?.link || null;
