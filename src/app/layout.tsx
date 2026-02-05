@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import Script from "next/script";
-import { Outfit, IBM_Plex_Sans_KR } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
-  subsets: ["latin"],
+const outfit = localFont({
+  src: "./fonts/Outfit-Variable.ttf",
   variable: "--font-outfit",
-  display: 'swap',
+  display: "swap",
 });
 
-const ibmPlexSansKR = IBM_Plex_Sans_KR({
-  weight: ["300", "400", "500", "600", "700"],
-  subsets: ["latin"],
+const ibmPlexSansKR = localFont({
+  src: [
+    { path: "./fonts/IBMPlexSansKR-Light.ttf", weight: "300", style: "normal" },
+    { path: "./fonts/IBMPlexSansKR-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexSansKR-Medium.ttf", weight: "500", style: "normal" },
+    { path: "./fonts/IBMPlexSansKR-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "./fonts/IBMPlexSansKR-Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-ibm-plex",
-  display: 'swap',
+  display: "swap",
 });
 
 export const metadata: Metadata = {

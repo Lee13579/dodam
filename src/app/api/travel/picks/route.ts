@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { searchNaverPlaces } from "@/lib/naver-search";
 import { generateTrendingTags } from "@/lib/naver-datalab";
 import { NextResponse } from "next/server";
+import { mirrorExternalImage } from "@/lib/image-mirror";
 
 // Supabase Admin Client (using Service Role for write access)
 const supabaseAdmin = createClient(
@@ -11,56 +12,88 @@ const supabaseAdmin = createClient(
 
 const THEMES = [
     { id: 'resort', title: '우리 아이 호캉스 🏨', subtitle: '따뜻한 실내에서 즐기는 프리미엄 휴식', queries: ["애견동반 호텔", "반려견 동반 리조트", "애견 풀빌라"] },
-    { id: 'activity', title: '추천 액티비티 🎈', subtitle: '놓치면 아쉬운 이번 주 반려견 행사', queries: ["반려견 축제", "애견 페스티벌", "반려견 운동회", "애견 동반 전시"] },
-    { id: 'play', title: '신나는 순간 🐾', subtitle: '활동적인 아이들을 위한 최적의 코스', queries: ["애견 운동장", "대형견 동반 카페", "애견 카페", "강아지 놀이터"] },
-    { id: 'nature', title: '자연과 함께 🌳', subtitle: '맑은 공기 마시며 즐기는 야외 산책', queries: ["애견동반 캠핑장", "반려견 동반 산책로", "애견 글램핑", "강아지 산책 공원"] }
+    { id: 'dining', title: '함께 즐기는 미식 🍴', subtitle: '반려견과 편안하게 식사할 수 있는 맛집과 카페', queries: ["반려견 동반 식당", "애견 동반 브런치", "강아지 가능 카페", "애견 동반 바베큐"] },
+    { id: 'play', title: '오프리쉬 자유시간 🐾', subtitle: '활동적인 아이들을 위한 최적의 놀이 코스', queries: ["애견 운동장", "강아지 수영장", "애견 테마파크", "반려견 축제"] },
+    { id: 'nature', title: '계절을 걷는 산책로 🌳', subtitle: '맑은 공기 마시며 즐기는 야외 산책', queries: ["애견동반 캠핑장", "반려견 동반 산책로", "애견 글램핑", "강아지 산책 공원"] }
 ];
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const lat = searchParams.get('lat');
+        const lng = searchParams.get('lng');
+        const isLocationAvailable = lat && lng;
+
         const results = [];
 
         for (const theme of THEMES) {
             // 1. Try to fetch from Supabase first
-            const { data: existingPlaces, error: fetchError } = await supabaseAdmin
-                .from('places')
-                .select('*')
-                .eq('theme_id', theme.id)
-                .limit(10);
+            let queryBuilder = supabaseAdmin.from('places').select('*').eq('theme_id', theme.id);
 
-            if (!fetchError && existingPlaces && existingPlaces.length >= 8) {
-                results.push({ ...theme, items: existingPlaces });
+            // If location is available, order by distance (simplified using Pythagoras since Korea is small)
+            if (isLocationAvailable) {
+                // Note: Real PostGIS would be better, but for small datasets we can sort by simple diff
+                // Here we fetch a slightly larger pool and sort in JS, or use a RPC if DB supports it.
+                queryBuilder = queryBuilder.limit(50);
+            } else {
+                queryBuilder = queryBuilder.limit(10);
+            }
+
+            const { data: existingPlaces, error: fetchError } = await queryBuilder;
+
+            let finalPlaces = existingPlaces || [];
+
+            if (isLocationAvailable && finalPlaces.length > 0) {
+                finalPlaces = finalPlaces.sort((a, b) => {
+                    const distA = Math.pow(parseFloat(a.lat) - parseFloat(lat!), 2) + Math.pow(parseFloat(a.lng) - parseFloat(lng!), 2);
+                    const distB = Math.pow(parseFloat(b.lat) - parseFloat(lat!), 2) + Math.pow(parseFloat(b.lng) - parseFloat(lng!), 2);
+                    return distA - distB;
+                }).slice(0, 10);
+            }
+
+            if (!fetchError && finalPlaces.length >= 8) {
+                results.push({
+                    ...theme,
+                    title: isLocationAvailable && theme.id === 'resort' ? `내 주변 호캉스 📍` : theme.title,
+                    items: finalPlaces
+                });
                 continue;
             }
 
             // 2. Fallback: Fetch from Naver if not enough data in DB
             console.log(`Insufficient data for ${theme.id}. Fetching from Naver...`);
             let allPlaces: any[] = [];
+            // If location is available, inject neighborhood into query
+            const searchQueryPrefix = isLocationAvailable && theme.id === 'resort' ? '내 주변 ' : '';
+
             for (const query of theme.queries.slice(0, 2)) {
                 if (allPlaces.length >= 10) break;
-                const places = await searchNaverPlaces(query, 10);
+                const places = await searchNaverPlaces(searchQueryPrefix + query, 10);
                 allPlaces = [...allPlaces, ...places];
                 await new Promise(r => setTimeout(r, 300));
             }
 
-            const processedItems = Array.from(new Map(allPlaces.map(p => [p.title, p])).values())
-                .slice(0, 10)
-                .map(place => {
-                    const charCodeSum = place.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-                    return {
-                        id: place.id,
-                        title: place.title,
-                        address: place.address,
-                        category: place.category,
-                        imageUrl: place.imageUrl,
-                        rating: parseFloat((4.5 + (charCodeSum % 5) / 10).toFixed(1)),
-                        reviewCount: 100 + (charCodeSum % 800),
-                        lat: place.lat,
-                        lng: place.lng,
-                        tags: generateTrendingTags(place.title, place.category),
-                        theme_id: theme.id
-                    };
-                });
+            const processedItems = await Promise.all(
+                Array.from(new Map(allPlaces.map(p => [p.title, p])).values())
+                    .slice(0, 10)
+                    .map(async place => {
+                        const charCodeSum = place.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+                        const mirroredUrl = await mirrorExternalImage(place.imageUrl || '');
+                        return {
+                            id: place.id,
+                            title: place.title,
+                            address: place.address,
+                            category: place.category,
+                            imageUrl: mirroredUrl,
+                            rating: parseFloat((4.5 + (charCodeSum % 5) / 10).toFixed(1)),
+                            reviewCount: 100 + (charCodeSum % 800),
+                            lat: place.lat,
+                            lng: place.lng,
+                            tags: generateTrendingTags(place.title, place.category),
+                            theme_id: theme.id
+                        };
+                    })
+            );
 
             // 3. Save new items to Supabase
             if (processedItems.length > 0) {

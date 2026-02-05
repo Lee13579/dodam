@@ -1,6 +1,7 @@
 import { searchNaverPlaces } from "@/lib/naver-search";
 import { generateTrendingTags, getNaverTrendingKeywords } from "@/lib/naver-datalab";
 import { NextResponse } from "next/server";
+import { mirrorExternalImage } from "@/lib/image-mirror";
 
 // In-memory cache for trending places to minimize API costs
 let cachedTrending: any[] | null = null;
@@ -25,13 +26,14 @@ export async function GET() {
 
                     if (bestPlace) {
                         const tags = generateTrendingTags(bestPlace.name, bestPlace.category);
-                        
+
                         // Generate stable rating based on title
                         const charCodeSum = bestPlace.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
                         const stableRating = (4.5 + (charCodeSum % 5) / 10).toFixed(1);
 
                         results.push({
                             ...bestPlace,
+                            imageUrl: await mirrorExternalImage(bestPlace.imageUrl || ''),
                             customDesc: `요즘 뜨는 "${keyword}"`,
                             tags: tags,
                             rating: stableRating
