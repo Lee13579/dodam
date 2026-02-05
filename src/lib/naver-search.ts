@@ -143,7 +143,7 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
         name: cleanTitle,
         title: cleanTitle,
-        category: category,
+        category: formatCategory(item.category),
         address: item.roadAddress || item.address,
         lat: lat,
         lng: lng,
