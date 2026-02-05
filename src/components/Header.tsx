@@ -45,21 +45,14 @@ export default function Header({ transparentMode = false }: HeaderProps) {
                     </Link>
 
                     {/* Desktop Nav */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/travel" className={`${textColorClass} hover:text-pink-500 font-medium transition-colors`}>여행</Link>
-                        <Link href="/#gallery" className={`${textColorClass} hover:text-pink-500 font-medium transition-colors`}>갤러리</Link>
-                        <Link href="/#styling" className={`${textColorClass} hover:text-pink-500 font-medium transition-colors`}>스타일링</Link>
-                        <a href="#" className={`${textColorClass} hover:text-pink-500 font-medium transition-colors`}>추천상품</a>
+                    <nav className="hidden md:flex items-center gap-10">
+                        <Link href="/" className={`${textColorClass} hover:text-pink-500 font-bold transition-all text-lg font-outfit`}>홈</Link>
+                        <Link href="/styling" className={`${textColorClass} hover:text-pink-500 font-bold transition-all text-lg font-outfit`}>스타일링</Link>
+                        <Link href="/travel" className={`${textColorClass} hover:text-pink-500 font-bold transition-all text-lg font-outfit`}>여행</Link>
+                        <Link href="/#about" className={`${textColorClass} hover:text-pink-500 font-bold transition-all text-lg font-outfit`}>브랜드 스토리</Link>
                     </nav>
 
-                    <div className="hidden md:block">
-                        <button
-                            onClick={() => document.getElementById('styling')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="px-6 py-2.5 bg-pink-500 hover:bg-pink-400 text-white rounded-full font-bold transition-all shadow-md shadow-pink-100 hover:shadow-lg font-outfit"
-                        >
-                            시작하기
-                        </button>
-                    </div>
+                    <div className="hidden md:block w-8" />
 
                     {/* Mobile Menu Toggle */}
                     <button
@@ -77,42 +70,33 @@ export default function Header({ transparentMode = false }: HeaderProps) {
             <div className={`fixed inset-0 z-40 bg-white transition-opacity duration-300 md:hidden ${mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
                 <div className="flex flex-col items-center justify-center h-full space-y-8 p-6">
                     <Link
+                        href="/"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-3xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors font-outfit"
+                    >
+                        홈
+                    </Link>
+                    <Link
+                        href="/styling"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-3xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors font-outfit"
+                    >
+                        스타일링
+                    </Link>
+                    <Link
                         href="/travel"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-2xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors"
+                        className="text-3xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors font-outfit"
                     >
                         여행
                     </Link>
                     <Link
-                        href="/#gallery"
+                        href="/#about"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="text-2xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors"
+                        className="text-3xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors font-outfit"
                     >
-                        갤러리
+                        브랜드 스토리
                     </Link>
-                    <Link
-                        href="/#styling"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-2xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors"
-                    >
-                        스타일링
-                    </Link>
-                    <a
-                        href="#"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-2xl font-bold text-[#2d241a] hover:text-pink-500 transition-colors"
-                    >
-                        추천상품
-                    </a>
-                    <button
-                        onClick={() => {
-                            setMobileMenuOpen(false);
-                            document.getElementById('styling')?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                        className="px-8 py-4 bg-pink-500 text-white rounded-full font-bold shadow-lg shadow-pink-200 w-full max-w-xs"
-                    >
-                        시작하기
-                    </button>
                 </div>
             </div>
         </>

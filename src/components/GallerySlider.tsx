@@ -21,7 +21,7 @@ export default function GallerySlider() {
     const duplicatedItems = [...GALLERY_ITEMS, ...GALLERY_ITEMS, ...GALLERY_ITEMS];
 
     return (
-        <section id="gallery" className="py-32 bg-white overflow-hidden">
+        <section id="gallery" className="py-16 bg-white overflow-hidden">
             <div className="container mx-auto px-6 mb-16">
                 <div className="text-center">
                     <h2 className="text-5xl md:text-7xl font-bold mb-6 font-outfit text-[#2d241a]">도담 갤러리</h2>

@@ -71,9 +71,9 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
                         onDragLeave={handleDrag}
                         onDragOver={handleDrag}
                         onDrop={handleDrop}
-                        className={`relative h-64 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${dragActive
-                            ? "border-indigo-500 bg-indigo-50/50 scale-[1.02]"
-                            : "border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300"
+                        className={`relative h-80 border-2 border-dashed rounded-[40px] flex flex-col items-center justify-center transition-all duration-500 ${dragActive
+                            ? "border-pink-300 bg-pink-50/50 scale-[1.02]"
+                            : "border-[#ffe8cc] bg-[#fffbf5]/80 backdrop-blur-sm hover:bg-[#fff9f0] hover:border-pink-200"
                             }`}
                     >
                         <input
@@ -83,13 +83,13 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
                             onChange={handleChange}
                             accept="image/*"
                         />
-                        <div className="p-4 rounded-2xl bg-indigo-50 text-indigo-500 mb-4 shadow-sm">
-                            <Upload className="w-8 h-8" />
+                        <div className="p-6 rounded-[30px] bg-white text-pink-400 mb-6 shadow-xl shadow-orange-100/50">
+                            <Upload className="w-10 h-10" />
                         </div>
-                        <p className="text-lg font-bold text-slate-700">
+                        <p className="text-xl font-bold text-[#2d241a] font-outfit">
                             여기에 사진을 드래그하거나 클릭하세요
                         </p>
-                        <p className="text-sm text-slate-500 mt-2">
+                        <p className="text-sm text-[#8b7355] mt-3 font-medium">
                             JPG, PNG 또는 WEBP (최대 5MB)
                         </p>
                     </motion.div>
@@ -99,21 +99,24 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="relative rounded-3xl overflow-hidden border border-slate-100 glass-card p-4 bg-white shadow-sm"
+                        className="relative rounded-[40px] overflow-hidden border border-[#fff4e6] p-6 bg-white/60 backdrop-blur-xl shadow-2xl shadow-orange-100/30"
                     >
-                        <img
-                            src={preview}
-                            alt="Preview"
-                            className="w-full h-80 object-cover rounded-2xl"
-                        />
+                        <div className="relative rounded-[32px] overflow-hidden group">
+                            <img
+                                src={preview}
+                                alt="Preview"
+                                className="w-full h-96 object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/10 transition-opacity group-hover:opacity-0" />
+                        </div>
                         <button
                             onClick={clearFile}
-                            className="absolute top-6 right-6 p-2 bg-white/90 text-slate-900 rounded-full hover:bg-white shadow-md transition-colors"
+                            className="absolute top-10 right-10 p-3 bg-white/90 text-[#2d241a] rounded-full hover:bg-white shadow-2xl transition-all scale-100 active:scale-90 hover:text-pink-500"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-6 h-6" />
                         </button>
-                        <div className="mt-4 flex items-center text-indigo-600 text-sm font-bold">
-                            <ImageIcon className="w-4 h-4 mr-2" /> 사진이 성공적으로 등록되었습니다
+                        <div className="mt-6 flex items-center justify-center text-pink-500 text-base font-bold font-outfit">
+                            <ImageIcon className="w-5 h-5 mr-3" /> 아이의 사진이 완벽하게 등록되었습니다
                         </div>
                     </motion.div>
                 )}

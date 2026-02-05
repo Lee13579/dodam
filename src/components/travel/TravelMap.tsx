@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Plus, Trash2, Calendar, PawPrint, Coffee, Utensils, Hotel, Trees, ArrowDown, Bot, Loader2, Stars, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, ExternalLink } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export interface Place {
     id: string;
@@ -35,91 +35,74 @@ interface TravelMapProps {
     initialPeople?: string;
     initialDogs?: string;
     onHoverPlace?: (id: string | null) => void;
+    onSelectPlace?: (place: Place) => void;
 }
 
 const TravelMap: React.FC<TravelMapProps> = ({
-    onAddPlace,
+    onAddPlace, // eslint-disable-line @typescript-eslint/no-unused-vars
     itinerary,
     onRemovePlace,
-    allPlaces,
+    allPlaces, // eslint-disable-line @typescript-eslint/no-unused-vars
     onGenerateCourse,
     isLoading = false,
     initialRegion = 'Gangnam',
     initialPeople = '2',
     initialDogs = '1',
-    onHoverPlace
+    onHoverPlace,
+    onSelectPlace
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
     // AI Form State
-    const [days, setDays] = useState('1 Day');
+    const [days] = useState('1 Day'); // eslint-disable-line @typescript-eslint/no-unused-vars
     const [people, setPeople] = useState(initialPeople);
     const [dogs, setDogs] = useState(initialDogs);
     const [region, setRegion] = useState(initialRegion);
-    const [conditions, setConditions] = useState('');
-
-    const categories = [
-        { id: 'Hotel', icon: Hotel, label: 'Sleep' },
-        { id: 'Restaurant', icon: Utensils, label: 'Eat' },
-        { id: 'Cafe', icon: Coffee, label: 'Cafe' },
-        { id: 'Park', icon: Trees, label: 'Play' },
-    ];
-
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
-            case 'Hotel': return <Hotel size={16} />;
-            case 'Restaurant': return <Utensils size={16} />;
-            case 'Cafe': return <Coffee size={16} />;
-            case 'Park': return <Trees size={16} />;
-            default: return <MapPin size={16} />;
-        }
-    };
+    const [conditions] = useState(''); // eslint-disable-line @typescript-eslint/no-unused-vars
 
     return (
-        <div className="flex flex-col h-full bg-[#fffdfa] border-r border-[#efebe8] shadow-2xl relative overflow-hidden text-[#2D241A]">
+        <div className="flex flex-col h-full bg-[#FAFAFA] border-r border-white/50 shadow-2xl relative overflow-hidden text-[#1b0d12] font-sans">
 
             {/* Header */}
-            <header className="p-6 border-b border-[#efebe8] bg-white/50 backdrop-blur-md sticky top-0 z-20">
-                <div className="flex items-center justify-between mb-2">
-                    <h1 className="text-2xl font-extrabold flex items-center gap-2 font-outfit tracking-tighter text-[#2D241A]">
-                        <div className="w-8 h-8 bg-pink-500 rounded-xl flex items-center justify-center text-white rotate-3 shadow-md">
-                            <PawPrint className="w-5 h-5" />
+            <header className="px-6 py-5 border-b border-[#F0F0F0] bg-white/80 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-xl font-black flex items-center gap-2 tracking-tight text-[#1b0d12]">
+                        <div className="w-9 h-9 bg-[#ee2b6c] rounded-xl flex items-center justify-center text-white shadow-lg shadow-pink-200">
+                            <PawPrint className="w-5 h-5" fill="currentColor" />
                         </div>
-                        <span className="bg-gradient-to-br from-[#2D241A] to-[#8B7355] bg-clip-text text-transparent">도담 플래너</span>
+                        <span>도담 플래너</span>
                     </h1>
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide bg-gradient-to-b from-white to-[#fffdfa]">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide bg-[#FAFAFA]">
 
                 {/* AI Configuration Section */}
-                <div className="bg-white rounded-[24px] p-5 shadow-lg shadow-stone-100 border border-[#fff4e6] space-y-4">
+                <div className="bg-white rounded-[28px] p-6 shadow-xl shadow-gray-100 border border-white space-y-5">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold flex items-center gap-2 text-[#2D241A]">
+                        <h3 className="text-sm font-extrabold flex items-center gap-2 text-[#1b0d12]">
+                            <Bot size={18} className="text-[#ee2b6c]" />
                             여행 설정
-                            <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#ee2b6c]"></span>
                         </h3>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#8B7355] ml-1">지역</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider">지역</label>
                             <input
                                 type="text"
                                 value={region}
                                 onChange={e => setRegion(e.target.value)}
-                                className="w-full bg-stone-50 p-2.5 rounded-xl text-sm font-bold focus:ring-1 focus:ring-pink-200 outline-none"
+                                className="w-full bg-[#F5F5F5] p-3 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#ee2b6c]/20 focus:bg-white transition-all outline-none text-[#1b0d12]"
                             />
                         </div>
                         <div className="flex gap-2">
-                            <div className="space-y-1 flex-1">
-                                <label className="text-[10px] font-bold text-[#8B7355] ml-1">인원</label>
-                                <input type="number" value={people} onChange={e => setPeople(e.target.value)} className="w-full bg-stone-50 p-2.5 rounded-xl text-sm font-bold text-center" />
+                            <div className="space-y-1.5 flex-1">
+                                <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider">인원</label>
+                                <input type="number" value={people} onChange={e => setPeople(e.target.value)} className="w-full bg-[#F5F5F5] p-3 rounded-2xl text-sm font-bold text-center focus:ring-2 focus:ring-[#ee2b6c]/20 focus:bg-white transition-all outline-none text-[#1b0d12]" />
                             </div>
-                            <div className="space-y-1 flex-1">
-                                <label className="text-[10px] font-bold text-[#8B7355] ml-1">반려견</label>
-                                <input type="number" value={dogs} onChange={e => setDogs(e.target.value)} className="w-full bg-stone-50 p-2.5 rounded-xl text-sm font-bold text-center" />
+                            <div className="space-y-1.5 flex-1">
+                                <label className="text-[10px] font-black text-gray-400 ml-1 uppercase tracking-wider">반려견</label>
+                                <input type="number" value={dogs} onChange={e => setDogs(e.target.value)} className="w-full bg-[#F5F5F5] p-3 rounded-2xl text-sm font-bold text-center focus:ring-2 focus:ring-[#ee2b6c]/20 focus:bg-white transition-all outline-none text-[#1b0d12]" />
                             </div>
                         </div>
                     </div>
@@ -127,134 +110,143 @@ const TravelMap: React.FC<TravelMapProps> = ({
                     <button
                         onClick={() => onGenerateCourse({ days, people: people || '1', dogs: dogs || '1', region: region || '서울', conditions })}
                         disabled={isLoading}
-                        className="w-full bg-[#1c1917] text-white py-3 rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-70"
+                        className="w-full bg-[#1b0d12] text-white py-4 rounded-2xl font-bold hover:bg-[#ee2b6c] transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-[#ee2b6c]/30 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 className="w-4 h-4 animate-spin text-pink-500" />
-                                <span>코스 찾는 중...</span>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>AI가 코스를 짜는 중...</span>
                             </>
                         ) : (
                             <>
-                                <span>코스 적용하기</span>
+                                <Stars size={16} fill="currentColor" />
+                                <span>AI 맞춤 코스 생성하기</span>
                             </>
                         )}
                     </button>
                 </div>
 
                 {/* Itinerary */}
-                <section className="">
-                    <div className="flex items-center justify-between mb-4 px-1">
-                        <h3 className="text-lg font-bold text-[#2d241a] flex items-center gap-2">
-                            <Calendar size={16} className="text-orange-500" />
+                <section>
+                    <div className="flex items-center justify-between mb-4 px-2">
+                        <h3 className="text-lg font-extrabold text-[#1b0d12] flex items-center gap-2">
+                            <Calendar size={18} className="text-[#ee2b6c]" />
                             <span>나의 여행 일정</span>
                         </h3>
-                        <span className="text-[10px] font-extrabold bg-stone-100 text-stone-400 px-3 py-1 rounded-full">{itinerary.length} STOPS</span>
+                        <span className="text-[10px] font-black bg-white border border-gray-100 text-gray-400 px-3 py-1.5 rounded-full shadow-sm">{itinerary.length} PLACES</span>
                     </div>
 
-                    <div className="space-y-3 relative pb-10">
+                    <div className="space-y-4 relative pb-20">
                         {itinerary.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 bg-stone-50/50 rounded-[28px] border-2 border-dashed border-stone-100 text-stone-300">
-                                <MapPin size={24} className="opacity-20 mb-2" />
-                                <p className="text-xs font-medium text-center leading-relaxed">
-                                    설정된 코스가 없습니다.<br />
-                                    <span className="text-pink-500">코스 적용하기</span>를 눌러보세요!
+                            <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[32px] border border-dashed border-gray-200 text-gray-300">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <MapPin size={24} className="opacity-20 text-gray-400" />
+                                </div>
+                                <p className="text-sm font-bold text-center text-gray-400">
+                                    아직 코스가 비어있어요.
                                 </p>
+                                <button className="mt-4 text-[#ee2b6c] text-xs font-black hover:underline" onClick={() => document.querySelector('input')?.focus()}>
+                                    여행지 입력하고 시작하기 &rarr;
+                                </button>
                             </div>
                         ) : (
                             itinerary.map((place, index) => (
                                 <motion.div
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.05 }}
                                     key={`${place.id}-${index}`}
-                                    className="relative flex items-start"
+                                    className="relative flex items-start group"
                                 >
-                                    {/* Timeline */}
+                                    {/* Timeline Line */}
                                     {index < itinerary.length - 1 && (
-                                        <div className="absolute left-[19px] top-[40px] bottom-[-20px] w-0.5 bg-gradient-to-b from-pink-500 to-stone-100 z-0" />
+                                        <div className="absolute left-[19px] top-[40px] bottom-[-24px] w-[2px] bg-[#F0F0F0] z-0" />
                                     )}
 
-                                    <div className="w-10 h-10 rounded-xl bg-pink-500 text-white flex items-center justify-center text-xs font-black border-4 border-white shadow-lg z-10 flex-shrink-0 mr-3 mt-1">
+                                    {/* Number Badge */}
+                                    <div className="w-10 h-10 rounded-2xl bg-white text-[#1b0d12] flex items-center justify-center text-sm font-black border border-gray-100 shadow-md shadow-gray-100 z-10 flex-shrink-0 mr-4 group-hover:bg-[#ee2b6c] group-hover:text-white group-hover:border-[#ee2b6c] transition-colors duration-300">
                                         {index + 1}
                                     </div>
 
+                                    {/* Card */}
                                     <div
-                                        className="flex-1 bg-white p-4 rounded-3xl border border-stone-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group hover:border-pink-200"
+                                        className="flex-1 bg-white p-4 rounded-[28px] border border-white shadow-[0_10px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(238,43,108,0.15)] transition-all cursor-pointer group hover:-translate-y-1"
                                         onMouseEnter={() => onHoverPlace?.(place.id)}
                                         onMouseLeave={() => onHoverPlace?.(null)}
+                                        onClick={() => onSelectPlace?.(place)}
                                     >
-                                        {/* Affiliate Badge */}
-                                        {(place.source === 'AGODA' || place.source === 'KLOOK') && (
-                                            <div className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2 ${place.source === 'AGODA' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                                                }`}>
-                                                {place.badge || (place.source === 'AGODA' ? 'AGODA 특가' : 'KLOOK 액티비티')}
-                                            </div>
-                                        )}
-                                        {place.source === 'NAVER' && (
-                                            <div className="inline-block bg-green-100 text-green-700 text-[10px] font-extrabold px-2 py-0.5 rounded-full mb-2">NAVER SmartPlace</div>
-                                        )}
-
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex flex-col">
-                                                <h4 className="text-sm font-extrabold text-[#2d241a] line-clamp-1">{place.name}</h4>
-                                                {place.category && <span className="text-[10px] text-stone-400 font-bold">{place.category}</span>}
-                                            </div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onRemovePlace(place.id, index); }}
-                                                className="text-stone-300 hover:text-red-500 transition-colors p-1"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                        {/* Badges */}
+                                        <div className="flex gap-2 mb-3">
+                                            {(place.source === 'AGODA' || place.source === 'KLOOK') && (
+                                                <div className={`text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wide ${place.source === 'AGODA' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
+                                                    {place.badge || (place.source === 'AGODA' ? 'AGODA' : 'KLOOK')}
+                                                </div>
+                                            )}
+                                            {place.source === 'NAVER' && (
+                                                <div className="bg-[#03C75A]/10 text-[#03C75A] text-[9px] font-black px-2 py-1 rounded-lg">NAVER</div>
+                                            )}
+                                            {place.category && (
+                                                <div className="bg-gray-50 text-gray-500 text-[9px] font-bold px-2 py-1 rounded-lg line-clamp-1">{place.category}</div>
+                                            )}
                                         </div>
 
-                                        {/* Image (Optional) */}
+                                        {/* Title & Remove */}
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h4 className="text-base font-black text-[#1b0d12] line-clamp-1 leading-tight group-hover:text-[#ee2b6c] transition-colors">{place.name}</h4>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onRemovePlace(place.id, index); }}
+                                                className="text-gray-300 hover:text-red-500 transition-colors p-1 -mr-2 -mt-2 opacity-0 group-hover:opacity-100"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-400 font-bold mb-3 line-clamp-1">{place.address}</p>
+
+                                        {/* Image Area */}
                                         {place.imageUrl && (
-                                            <div className="w-full h-28 mb-3 rounded-xl overflow-hidden shadow-sm relative group-hover:shadow-md transition-all">
+                                            <div className="w-full h-32 mb-4 rounded-2xl overflow-hidden relative group-hover:shadow-md transition-all bg-gray-100">
                                                 <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
                                                 {place.originalPrice && place.price && (
-                                                    <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                                                    <div className="absolute top-2 left-2 bg-[#ee2b6c] text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
                                                         {Math.round((place.originalPrice - place.price) / place.originalPrice * 100)}% OFF
                                                     </div>
                                                 )}
-                                            </div>
-                                        )}
-
-                                        {/* Price & Rating */}
-                                        {(place.price || place.rating) && (
-                                            <div className="flex items-center justify-between text-xs mb-3 font-bold text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-100">
-                                                {place.price ? (
-                                                    <div className="flex flex-col">
-                                                        {place.originalPrice && (
-                                                            <span className="text-[10px] text-stone-400 line-through">₩{place.originalPrice.toLocaleString()}</span>
-                                                        )}
-                                                        <span className="text-pink-600 text-sm font-black">₩{place.price.toLocaleString()}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-stone-400 text-[10px]">가격 정보 없음</span>
-                                                )}
 
                                                 {place.rating && (
-                                                    <span className="flex items-center gap-1 text-yellow-500 bg-white px-1.5 py-0.5 rounded-md shadow-sm border border-stone-50">
-                                                        <span className="text-yellow-500">★</span> {place.rating}
-                                                    </span>
+                                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg shadow-sm">
+                                                        <span className="text-[10px]">⭐</span>
+                                                        <span className="text-[10px] font-black text-[#1b0d12]">{place.rating}</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
 
-                                        <p className="text-xs text-stone-500 line-clamp-1 mb-3">{place.address}</p>
-
-                                        {/* Booking Button */}
-                                        {place.bookingUrl && (
-                                            <a
-                                                href={place.bookingUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="flex items-center justify-center w-full py-2.5 rounded-xl bg-[#2d241a] text-white text-xs font-bold hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md"
-                                            >
-                                                최저가 예약하기 <ExternalLink size={10} className="inline ml-1.5" />
-                                            </a>
+                                        {/* Price or Action */}
+                                        {place.price ? (
+                                            <div className="flex items-center justify-between mt-2">
+                                                <div className="flex flex-col">
+                                                    {place.originalPrice && <span className="text-[10px] text-gray-300 line-through font-bold">₩{place.originalPrice.toLocaleString()}</span>}
+                                                    <span className="text-[#1b0d12] text-lg font-black">₩{place.price.toLocaleString()}</span>
+                                                </div>
+                                                {place.bookingUrl && (
+                                                    <a
+                                                        href={place.bookingUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="px-4 py-2 bg-[#1b0d12] text-white text-xs font-bold rounded-xl hover:bg-[#ee2b6c] transition-colors shadow-lg hover:shadow-[#ee2b6c]/30"
+                                                    >
+                                                        예약
+                                                    </a>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="mt-2 pt-2 border-t border-dashed border-gray-100 flex justify-between items-center">
+                                                <span className="text-[10px] text-gray-400 font-bold">상세 정보 확인</span>
+                                                <ArrowDown size={14} className="text-gray-300 -rotate-90 group-hover:text-[#ee2b6c] transition-colors" />
+                                            </div>
                                         )}
                                     </div>
                                 </motion.div>

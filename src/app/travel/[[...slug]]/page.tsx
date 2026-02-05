@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PawPrint } from 'lucide-react';
 import TravelLanding from "@/components/travel/TravelLanding";
 import TravelMap, { Place } from "@/components/travel/TravelMap";
 import MapContainer from "@/components/travel/MapContainer";
+import TravelDetail from "@/components/travel/TravelDetail";
 
 const MOCK_PLACES: Place[] = [
     { id: 'h1', name: 'Grand InterContinental Seoul', title: 'Grand InterContinental', category: 'Hotel', address: 'Gangnam-gu, Seoul', lat: 37.5096, lng: 127.0602 },
@@ -34,6 +36,16 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
     const [itinerary, setItinerary] = useState<Place[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [focusedId, setFocusedId] = useState<string | null>(null);
+    const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+
+    // Handle initial place selection from URL
+    const initPlaceId = searchParams.get('placeId');
+    useEffect(() => {
+        if (initPlaceId) {
+            const found = MOCK_PLACES.find(p => p.id === initPlaceId);
+            if (found) setSelectedPlace(found);
+        }
+    }, [initPlaceId]);
 
     // Initial Generation Effect (Only in Map Mode)
     useEffect(() => {
@@ -108,12 +120,12 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
                     >
                         {/* Simple Header for Map View */}
                         <div className="h-[60px] bg-white border-b border-[#efebe8] flex items-center px-6 justify-between flex-shrink-0 z-30 shadow-sm relative">
-                            <a href="/travel" className="font-outfit font-bold text-lg text-[#2D241A] flex items-center gap-2 hover:opacity-70 transition-opacity">
+                            <Link href="/travel" className="font-outfit font-bold text-lg text-[#2D241A] flex items-center gap-2 hover:opacity-70 transition-opacity">
                                 <div className="w-6 h-6 bg-pink-500 rounded-lg flex items-center justify-center text-white">
                                     <PawPrint size={14} />
                                 </div>
                                 <span className="tracking-tight">도담여행</span>
-                            </a>
+                            </Link>
                             <div className="text-xs font-bold text-pink-500 bg-pink-50 px-3 py-1 rounded-full border border-pink-100">
                                 {initRegion} 맞춤 여행 ✈️
                             </div>
@@ -133,8 +145,12 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
                                     initialPeople={initPeople}
                                     initialDogs={initDogs}
                                     onHoverPlace={setFocusedId}
+                                    onSelectPlace={setSelectedPlace}
                                 />
                             </aside>
+
+                            {/* Detail View Drawer */}
+                            <TravelDetail place={selectedPlace} onClose={() => setSelectedPlace(null)} />
 
                             {/* Right Content: Map */}
                             <section className="flex-1 relative w-full h-full bg-[#f0f0f0]">
