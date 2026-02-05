@@ -51,10 +51,10 @@ export async function searchNaverImages(query: string, context?: string): Promis
   if (!clientId || !clientSecret) return null;
 
   try {
-    // Improve query by adding "place" related context to avoid personal pet photos
-    const refinedQuery = `${query} 업체 사진 인테리어`;
+    // Simplify query for higher success rate. Just place name usually works best.
+    const refinedQuery = query;
 
-    const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(refinedQuery)}&display=5&sort=sim&filter=medium`, {
+    const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(refinedQuery)}&display=3&sort=sim&filter=medium`, {
       method: 'GET',
       headers: {
         'X-Naver-Client-Id': clientId,
@@ -62,10 +62,16 @@ export async function searchNaverImages(query: string, context?: string): Promis
       },
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn(`Naver Image Search API failed: ${response.status}`);
+      return null;
+    }
 
     const data = await response.json();
-    if (!data.items || data.items.length === 0) return null;
+    if (!data.items || data.items.length === 0) {
+      console.log(`No images found for: ${refinedQuery}`);
+      return null;
+    }
 
     // Filter for reliable image paths and avoid known "blog card" patterns if any
     const bestItem = data.items.find((item: any) =>
@@ -108,7 +114,6 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
 
     // 데이터 변환 및 HTML 태그 제거
     const places = await Promise.all(data.items.map(async (item: NaverPlace, index: number) => {
-      // HTML 태그 및 엔티티 제거/치환
       const cleanTitle = item.title
         .replace(/<[^>]*>?/gm, '')
         .replace(/&amp;/g, '&')
@@ -117,12 +122,11 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
 
-      // 좌표 변환 (String -> Number -> Project -> [lng, lat])
       const [lng, lat] = proj4(KATECH, WGS84, [parseInt(item.mapx), parseInt(item.mapy)]);
 
-      // 이미지 검색
+      // 이미지 검색 (Limit to first 4 items to save API quota)
       let imgUrl = null;
-      if (display <= 5) {
+      if (index < 4) {
         imgUrl = await searchNaverImages(cleanTitle, query);
       }
 
@@ -132,26 +136,20 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         cleanTitle.includes('애견') ||
         cleanTitle.includes('반려견');
 
-      // 고해상도 반려견 테마 플레이스홀더들 (이미지 검색 실패 시 다양성 확보)
-      const dogPlaceholders = [
-        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=800&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=800&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1514373941175-0a1410629e71?q=80&w=800&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=800&auto=format&fit=crop'
-      ];
+      // Use a consistent internal placeholder instead of generic Unsplash dogs
+      const placeholder = 'https://images.unsplash.com/photo-1541336318489-08390bb06bbd?q=80&w=800&auto=format&fit=crop'; // A neutral, high-quality "Travel/Location" placeholder
 
       return {
         id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
         name: cleanTitle,
         title: cleanTitle,
-        category: formatCategory(item.category),
+        category: category,
         address: item.roadAddress || item.address,
         lat: lat,
         lng: lng,
         description: item.category,
         link: item.link,
-        imageUrl: imgUrl || dogPlaceholders[index % dogPlaceholders.length],
+        imageUrl: imgUrl || placeholder,
         isPetFriendly: isPetFriendly
       };
     }));

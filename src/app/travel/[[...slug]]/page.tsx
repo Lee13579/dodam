@@ -40,12 +40,35 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
 
     // Handle initial place selection from URL
     const initPlaceId = searchParams.get('placeId');
+    const autoGenerate = searchParams.get('autoGenerate') === 'true';
+
     useEffect(() => {
-        if (initPlaceId) {
-            const found = MOCK_PLACES.find(p => p.id === initPlaceId);
-            if (found) setSelectedPlace(found);
-        }
-    }, [initPlaceId]);
+        const fetchAndSetPlace = async () => {
+            if (initPlaceId) {
+                // First check MOCK_PLACES
+                const found = MOCK_PLACES.find(p => p.id === initPlaceId);
+                if (found) {
+                    setSelectedPlace(found);
+                } else {
+                    // If not in MOCK, we might need to fetch it or create a placeholder from params
+                    const lat = searchParams.get('lat');
+                    const lng = searchParams.get('lng');
+                    if (lat && lng) {
+                        setSelectedPlace({
+                            id: initPlaceId,
+                            title: '선택한 장소',
+                            name: '선택한 장소',
+                            address: initRegion,
+                            lat: parseFloat(lat),
+                            lng: parseFloat(lng),
+                            category: 'Point'
+                        });
+                    }
+                }
+            }
+        };
+        fetchAndSetPlace();
+    }, [initPlaceId, initRegion]);
 
     // Initial Generation Effect (Only in Map Mode)
     useEffect(() => {
@@ -55,10 +78,12 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
                 people: initPeople,
                 dogs: initDogs,
                 days: initDays,
-                conditions: '최적의 코스 추천'
+                conditions: autoGenerate && initPlaceId 
+                    ? `[ID: ${initPlaceId}] 이 장소를 반드시 포함하여 주변 반려견 동반 코스를 추천해줘.` 
+                    : '최적의 코스 추천'
             });
         }
-    }, [isMapMode, initRegion]); // Removed other deps to prevent re-fetching on small changes
+    }, [isMapMode, initRegion, initPlaceId, autoGenerate]); 
 
     const handleGenerateCourse = async (criteria: { days: string, people: string, dogs: string, region: string, conditions: string }) => {
         setIsLoading(true);

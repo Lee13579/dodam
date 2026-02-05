@@ -221,35 +221,56 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                         </div>
 
                         {/* 4. Footer CTA */}
-                        {place.price && (
-                            <div className="px-8 py-5 border-t border-gray-100 bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.03)] flex items-center justify-between">
+                        <div className="px-8 py-5 border-t border-gray-100 bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.03)] flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
                                 <div className="flex flex-col">
-                                    {place.originalPrice && (
-                                        <span className="text-xs text-gray-300 line-through font-bold">₩{place.originalPrice.toLocaleString()}</span>
+                                    {place.price ? (
+                                        <>
+                                            {place.originalPrice && (
+                                                <span className="text-xs text-gray-300 line-through font-bold">₩{place.originalPrice.toLocaleString()}</span>
+                                            )}
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-2xl font-black text-[#1b0d12]">₩{place.price.toLocaleString()}</span>
+                                                <span className="text-xs font-bold text-gray-400">/ 박</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-400">주소</span>
+                                            <span className="text-sm font-bold text-[#1b0d12] line-clamp-1">{place.address}</span>
+                                        </div>
                                     )}
-                                    <div className="flex items-center gap-1">
-                                        <span className="text-2xl font-black text-[#1b0d12]">₩{place.price.toLocaleString()}</span>
-                                        <span className="text-xs font-bold text-gray-400">/ 박</span>
-                                    </div>
                                 </div>
-                                <a
-                                    href={place.bookingUrl || '#'}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-[#1b0d12] hover:bg-[#ee2b6c] text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:shadow-[#ee2b6c]/30 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2"
-                                >
-                                    <ExternalLink size={16} />
-                                    최저가 예약
-                                </a>
+                                {place.bookingUrl && (
+                                    <a
+                                        href={place.bookingUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="bg-[#1b0d12] hover:bg-black text-white px-6 py-3.5 rounded-2xl font-bold shadow-sm transition-all flex items-center gap-2 text-sm"
+                                    >
+                                        <ExternalLink size={14} />
+                                        예약하기
+                                    </a>
+                                )}
                             </div>
-                        )}
-                        {!place.price && (
-                            <div className="px-8 py-5 border-t border-gray-100 bg-white">
-                                <button className="w-full bg-[#1b0d12] hover:bg-[#ee2b6c] text-white py-4 rounded-2xl font-bold shadow-lg transition-colors">
-                                    상세 정보 보기
-                                </button>
-                            </div>
-                        )}
+
+                            <button
+                                onClick={() => {
+                                    const params = new URLSearchParams({
+                                        region: place.address?.split(' ')[0] || '',
+                                        placeId: place.id,
+                                        lat: place.lat?.toString() || '',
+                                        lng: place.lng?.toString() || '',
+                                        autoGenerate: 'true'
+                                    });
+                                    window.location.href = `/travel/map?${params.toString()}`;
+                                }}
+                                className="w-full bg-[#ee2b6c] hover:bg-[#d01b55] text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-pink-300 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+                            >
+                                <span className="text-lg">✨</span>
+                                이 장소 포함해서 AI 일정 짜기
+                            </button>
+                        </div>
                     </motion.div>
                 </>
             )}

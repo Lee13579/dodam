@@ -13,42 +13,47 @@ export async function GET() {
 
         // Fetch fresh data only if cache is empty or expired (1 hour)
         if (!cachedTrending || (currentTime - lastFetchTime > CACHE_DURATION)) {
-            // Fetch "Real" Trending Keywords from DataLab (Simulated for robustness)
-            const trendKeywords = await getNaverTrendingKeywords();
+            const trendKeywords = (await getNaverTrendingKeywords()).slice(0, 8);
+            const results = [];
 
-            const results = await Promise.all(
-                trendKeywords.map(async (keyword) => {
-                    // Fetch results for this specific trending keyword
-                    const places = await searchNaverPlaces(keyword, 5);
+            // Execute sequentially to avoid Naver API rate limits (Too Many Requests)
+            for (const keyword of trendKeywords) {
+                try {
+                    const places = await searchNaverPlaces(keyword, 3);
+                    const isPetKeyword = keyword.includes('애견') || keyword.includes('반려');
+                    const bestPlace = places.find(p => p.isPetFriendly) || (isPetKeyword ? places[0] : null);
 
-                    const petFriendlyPlace = places.find(p => p.isPetFriendly);
+                    if (bestPlace) {
+                        const tags = generateTrendingTags(bestPlace.name, bestPlace.category);
+                        
+                        // Generate stable rating based on title
+                        const charCodeSum = bestPlace.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+                        const stableRating = (4.5 + (charCodeSum % 5) / 10).toFixed(1);
 
-                    if (petFriendlyPlace) {
-                        const tags = generateTrendingTags(petFriendlyPlace.name, petFriendlyPlace.category);
-                        return {
-                            ...petFriendlyPlace,
-                            // Use the keyword itself to describe the trend
+                        results.push({
+                            ...bestPlace,
                             customDesc: `요즘 뜨는 "${keyword}"`,
                             tags: tags,
-                        };
+                            rating: stableRating
+                        });
                     }
-                    return null;
-                })
-            );
+                    // Small breathing room for API
+                    await new Promise(r => setTimeout(r, 100));
+                } catch (e) {
+                    console.warn(`Failed to fetch for keyword: ${keyword}`, e);
+                }
+            }
 
-            cachedTrending = results.filter(r => r !== null);
+            cachedTrending = results;
             lastFetchTime = currentTime;
         }
 
-        // Shuffle the cached items and return a random subset of 10 for variety
         const randomSubset = [...(cachedTrending || [])]
             .sort(() => 0.5 - Math.random())
             .slice(0, 10);
 
         return NextResponse.json(randomSubset, {
-            headers: {
-                'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59'
-            }
+            headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59' }
         });
 
     } catch (error: any) {
