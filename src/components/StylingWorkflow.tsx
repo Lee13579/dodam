@@ -1,18 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import UploadZone from "./UploadZone";
 import StyleSelector from "./StyleSelector";
 import ResultCard from "./ResultCard";
 import ProductRecommendation from "./ProductRecommendation";
 import { DogStyle, Product } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Stars, Bot } from "lucide-react";
+import { Loader2, ArrowLeft, Stars, Bot, Shirt, Wand2, Camera, X, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { getNaturalName } from "@/lib/utils";
 
 interface StylingWorkflowProps {
     step: number;
     setStep: (step: number) => void;
 }
+
+const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new window.Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let { width, height } = img;
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else if (height > maxWidth) {
+                    width *= maxWidth / height;
+                    height = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (ctx) {
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+                }
+                resolve(canvas.toDataURL("image/jpeg", 0.9)); 
+            };
+        };
+    });
+};
 
 export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps) {
     const [file, setFile] = useState<File | null>(null);
@@ -23,164 +57,91 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     const [loadingStep, setLoadingStep] = useState("");
     const [dogName, setDogName] = useState("");
     const [customPrompt, setCustomPrompt] = useState("");
-
+    const [userRequest, setUserRequest] = useState("");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [results, setResults] = useState<{
-        originalImage: string;
-        styledImages: string[];
-        analysis: string;
-        dogName?: string;
-        technicalDetails?: {
-            prompt?: string;
-            keywords?: string[];
-        };
-    } | null>(null);
+    const [results, setResults] = useState<any | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [recommendations, setRecommendations] = useState<any[]>([]);
+    const [suggestedClothes, setSuggestedClothes] = useState<any[]>([]);
+    const [suggestedAccessories, setSuggestedAccessories] = useState<any[]>([]);
+    
+    // Scroll Refs
+    const clothScrollRef = useRef<HTMLDivElement>(null);
+    const accScrollRef = useRef<HTMLDivElement>(null);
 
-    const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
+    const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
+        if (!ref.current) return;
+        const scrollAmount = 400;
+        ref.current.scrollBy({
+            left: direction === 'left' ? -scrollAmount : scrollAmount,
+            behavior: 'smooth'
         });
     };
 
-    const [recommendations, setRecommendations] = useState<Array<{ id: string; name: string; description: string; customPrompt: string; koreanAnalysis: string; searchKeywords: string[] }>>([]);
-    const [regenerating, setRegenerating] = useState(false);
+    // Selection state for VTO
+    const [selectedCloth, setSelectedCloth] = useState<any | null>(null);
+    const [selectedAcc, setSelectedAcc] = useState<any | null>(null);
+    
+    const [shoppingQuery, setShoppingQuery] = useState("");
+    const [loadingMore, setLoadingMore] = useState(false);
 
-    const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new window.Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement("canvas");
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
-                    } else {
-                        if (height > maxWidth) {
-                            width *= maxWidth / height;
-                            height = maxWidth;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext("2d");
-                    ctx?.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.85));
-                };
-            };
-        });
+    const handleItemUpload = async (type: 'cloth' | 'acc', e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const base64 = await resizeImage(file, 512);
+        const customItem = { id: `custom-${type}-${Date.now()}`, image: base64, name: type === 'cloth' ? "나의 옷" : "나의 소품", isUserUploaded: true };
+        if (type === 'cloth') setSelectedCloth(customItem);
+        else setSelectedAcc(customItem);
     };
 
-    const handleStartAnalysis = async () => {
-        if (!file || !style) return;
-        setLoading(true);
+    const handleReset = () => {
+        setFile(null);
+        setPreviewUrl(null);
+        setStyle(null);
+        setMode(null);
+        setSelectedCloth(null);
+        setSelectedAcc(null);
+        setRecommendations([]);
+        setSuggestedClothes([]);
+        setSuggestedAccessories([]);
+        setProducts([]);
+        setResults(null);
+        setDogName("");
+        setCustomPrompt("");
+        setUserRequest("");
+        setKeepBackground(false);
+        setStep(1);
+    };
 
+    const handleLoadMoreProducts = async () => {
+        if (!shoppingQuery || loadingMore) return;
+        setLoadingMore(true);
         try {
-            const dispName = dogName ? `${dogName}` : "우리 아이";
-            const base64 = await resizeImage(file);
-
-            let generationPrompt = "";
-            let analysis = "";
-            let keywords: string[] = [];
-
-            // Check if it's an AI-generated style or a custom style
-            const selectedAiConcept = recommendations.find(c => c.id === style);
-
-            if (selectedAiConcept) {
-                // Adjust prompt based on mode and background preference
-                if (mode === 'vto' || keepBackground) {
-                    const outfit = (selectedAiConcept as any).vtoOutfitEnglish || selectedAiConcept.name;
-                    generationPrompt = `Using the provided image, perform a precise virtual try-on. KEEP THE ORIGINAL BACKGROUND and lighting. Modify ONLY the dog's clothing to: ${outfit}. Ensure realistic fabric textures and fit.`;
-                } else {
-                    generationPrompt = selectedAiConcept.customPrompt;
-                }
-
-                analysis = selectedAiConcept.koreanAnalysis;
-                keywords = selectedAiConcept.searchKeywords || [];
-                setLoadingStep(`${dispName}의 스타일을 정교하게 다듬는 중...`);
-            } else if (style === 'custom') {
-                // Only analyze if it's a completely new custom prompt
-                setLoadingStep(`${dispName}의 보석 같은 매력을 발견하는 중...`);
-                const analyzeRes = await fetch("/api/analyze", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ image: base64, style: customPrompt, isCustom: true }),
-                });
-                const analyzeData = await analyzeRes.json();
-
-                if (analyzeRes.status !== 200) {
-                    const errorMessage = analyzeData.details ? `${analyzeData.error}: ${analyzeData.details}` : analyzeData.error;
-                    throw new Error(errorMessage);
-                }
-
-                generationPrompt = analyzeData.generationPrompt;
-                analysis = analyzeData.analysis;
-                keywords = [customPrompt]; // Fallback keyword for custom
-            } else {
-                // Fallback for any other cases
-                throw new Error("Invalid style selection");
-            }
-
-            // Generate Image with Gemini
-            setLoadingStep(`${dispName}만의 특별한 변신을 그리는 중...`);
-            const generateRes = await fetch("/api/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: generationPrompt, image: base64 }),
-            });
-            const generateData = await generateRes.json();
-
-            if (generateRes.status !== 200) throw new Error(generateData.error);
-
-            // Fetch Partner Products
-            setLoadingStep("거의 다 됐어요! 반짝이는 모습을 준비 중...");
-
-            let query = style === 'custom' ? customPrompt : "";
-            if (selectedAiConcept && selectedAiConcept.searchKeywords) {
-                query = (selectedAiConcept as any).searchKeywords.join(" ");
-            }
-
-            const partnersRes = await fetch(`/api/partners?query=${encodeURIComponent(query || style)}&styleId=${style}`);
-            const productsData = await partnersRes.json();
-
-            setResults({
-                originalImage: base64,
-                styledImages: generateData.urls,
-                analysis,
-                dogName: dogName || undefined,
-                technicalDetails: {
-                    prompt: generationPrompt,
-                    keywords: keywords
-                }
-            });
-            setProducts(productsData);
-            setStep(3);
-        } catch (e: any) {
-            console.error(e);
-            alert(`문제가 발생했습니다: ${e.message || "스타일링에 실패했습니다."}`);
+            const nextStart = products.length + 1;
+            const res = await fetch(`/api/partners?query=${encodeURIComponent(shoppingQuery)}&start=${nextStart}`);
+            const newProducts = await res.json();
+            if (Array.isArray(newProducts)) setProducts(prev => [...prev, ...newProducts]);
+        } catch (e) {
+            console.error("Load more failed:", e);
         } finally {
-            setLoading(false);
-            setLoadingStep("");
+            setLoadingMore(false);
         }
     };
 
+    const fetchRealProductForItem = async (item: any) => {
+        try {
+            const res = await fetch(`/api/partners?query=${encodeURIComponent(item.searchKeyword)}&start=1`);
+            const products = await res.json();
+            if (products && products.length > 0) return { ...item, realProduct: products[0] };
+            return item;
+        } catch (_) { return item; }
+    };
+
     const handleStep1Submit = async () => {
-        if (!file) return;
+        if (!file || !mode) return;
         setLoading(true);
-        const dispName = dogName ? `${dogName}` : "우리 아이";
-        setLoadingStep(`${dispName}의 매력 포인트를 찾는 중...`);
+        const dispName = getNaturalName(dogName);
+        setLoadingStep(`${dispName}의 매력을 분석하는 중...`);
 
         try {
             const base64 = await resizeImage(file);
@@ -191,306 +152,428 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                 body: JSON.stringify({ image: base64 }),
             });
             const data = await res.json();
-            
-            if (res.ok && data.concepts && Array.isArray(data.concepts) && data.concepts.length > 0) {
+            if (res.ok && data.concepts?.length > 0) {
                 setRecommendations(data.concepts);
-                // Transition directly to Step 2 (Style Selection)
+                setLoadingStep("어울리는 실제 아이템을 매칭하는 중...");
+                const clothesWithReal = await Promise.all((data.suggestedClothes || []).map(fetchRealProductForItem));
+                const accWithReal = await Promise.all((data.suggestedAccessories || []).map(fetchRealProductForItem));
+                setSuggestedClothes(clothesWithReal);
+                setSuggestedAccessories(accWithReal);
                 setStep(2);
-            } else {
-                throw new Error("스타일 추천 데이터를 받지 못했습니다.");
-            }
+            } else throw new Error(data.details || "분석 실패");
         } catch (e: any) {
-            console.error("Recommendation failed:", e);
-            alert("죄송합니다. 스타일 추천에 실패했습니다. 잠시 후 다시 시도해주시거나 다른 사진을 사용해주세요.");
+            alert(`분석 중 오류: ${e.message}`);
         } finally {
             setLoading(false);
             setLoadingStep("");
         }
     };
 
-    const handleRegenerate = async () => {
-        if (!file || regenerating) return;
-        setRegenerating(true);
+    const handleStartAnalysis = async () => {
+        if (!file || (!style && !selectedCloth && !selectedAcc)) return;
+        setLoading(true);
 
         try {
             const base64 = await resizeImage(file);
-            const res = await fetch("/api/recommend", {
+            let generationPrompt = "";
+            let analysis = "";
+            let keywords: string[] = [];
+            let currentShoppingTip = "";
+            
+            const itemImages: { cloth?: string, acc?: string } = {};
+
+            if (selectedCloth || selectedAcc) {
+                const items = [];
+                if (selectedCloth) {
+                    if (selectedCloth.isUserUploaded) {
+                        itemImages.cloth = selectedCloth.image;
+                        items.push("the clothing in the second image");
+                    } else {
+                        const name = selectedCloth.realProduct?.name || selectedCloth.name;
+                        // Pass the curated product image to AI for exact matching
+                        if (selectedCloth.realProduct?.image) {
+                            itemImages.cloth = selectedCloth.realProduct.image;
+                            items.push(`the exact ${name} shown in the second image`);
+                        } else {
+                            items.push(name);
+                        }
+                        keywords.push(selectedCloth.searchKeyword || selectedCloth.name);
+                    }
+                }
+                if (selectedAcc) {
+                    if (selectedAcc.isUserUploaded) {
+                        itemImages.acc = selectedAcc.image;
+                        items.push(`the accessory in the ${itemImages.cloth ? 'third' : 'second'} image`);
+                    } else {
+                        const name = selectedAcc.realProduct?.name || selectedAcc.name;
+                        // Pass the curated accessory image to AI for exact matching
+                        if (selectedAcc.realProduct?.image) {
+                            itemImages.acc = selectedAcc.realProduct.image;
+                            items.push(`the exact ${name} shown in the ${itemImages.cloth ? 'third' : 'second'} image`);
+                        } else {
+                            items.push(name);
+                        }
+                        keywords.push(selectedAcc.searchKeyword || selectedAcc.name);
+                    }
+                }
+
+                generationPrompt = `[VTO] precisely dress the dog in ${items.join(" and ")}`;
+                if (userRequest.trim()) {
+                    generationPrompt += `. Additionally, please follow this user request: ${userRequest}`;
+                }
+                analysis = `${items.join(", ")}을(를) 활용한 완벽한 셋업 스타일링입니다. 아이의 개성을 최대한 살려 피팅해 드려요.`;
+                currentShoppingTip = "의류와 액세서리의 조화가 아주 훌륭해요. 실루엣과 디테일을 꼼꼼하게 표현합니다.";
+            } else {
+                const selectedAiConcept = recommendations.find(c => c.id === style);
+                if (mode === 'vto' || keepBackground) generationPrompt = `[VTO] ${selectedAiConcept.vtoOutfitEnglish}`;
+                else generationPrompt = `[PICTORIAL] ${selectedAiConcept.customPrompt}`;
+                analysis = selectedAiConcept.koreanAnalysis;
+                keywords = selectedAiConcept.searchKeywords || [];
+                currentShoppingTip = selectedAiConcept.shoppingTip;
+
+                if (userRequest.trim()) {
+                    generationPrompt += `. Special user request: ${userRequest}`;
+                }
+            }
+
+            setLoadingStep("아이의 새로운 모습을 그리는 중...");
+            const generateRes = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ image: base64 }),
+                body: JSON.stringify({ 
+                    prompt: generationPrompt, 
+                    image: base64, 
+                    clothImage: itemImages.cloth,
+                    accImage: itemImages.acc
+                }),
             });
-            const data = await res.json();
-            if (res.ok && data.concepts) {
-                setRecommendations(data.concepts);
-            }
-        } catch (e) {
-            console.error("Regeneration failed:", e);
+            const generateData = await generateRes.json();
+            if (!generateRes.ok) throw new Error(generateData.details);
+
+            const query = keywords.length > 0 ? keywords.join(" ") : (style as string);
+            setShoppingQuery(query);
+            const partnersRes = await fetch(`/api/partners?query=${encodeURIComponent(query)}`);
+            
+            setResults({
+                originalImage: base64,
+                styledImages: generateData.urls,
+                analysis,
+                dogName: dogName || undefined,
+                shoppingTip: currentShoppingTip
+            });
+            setProducts(await partnersRes.json());
+            setStep(3);
+        } catch (e: any) {
+            alert(`생성 중 오류: ${e.message}`);
         } finally {
-            setRegenerating(false);
+            setLoading(false);
         }
-    };
-
-
-    const getNaturalName = (name?: string) => {
-        if (!name) return "아이";
-        // Check if the last character has a batchim
-        const lastChar = name.charCodeAt(name.length - 1);
-        const hasBatchim = (lastChar - 0xac00) % 28 > 0;
-        
-        // If it already ends with '이' (like '별이'), just return name
-        if (name.endsWith('이')) return name;
-        
-        // If has batchim, add '이' for natural flow (e.g. '곰돌' -> '곰돌이')
-        return hasBatchim ? `${name}이` : name;
     };
 
     return (
         <div id="workflow" className="max-w-7xl mx-auto py-24 px-6">
             <AnimatePresence mode="wait">
                 {step === 1 && (
-                    <motion.div
-                        key="step1"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.02 }}
-                        className="space-y-12"
-                    >
+                    <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-12">
                         <div className="text-center space-y-4">
-                            <h2 className="text-4xl font-bold text-[#2d241a] font-outfit">아이의 매력을 보여주세요</h2>
-                            <p className="text-[#8b7355] text-lg max-w-xl mx-auto break-keep">
-                                반려견의 정면 사진을 올려주세요. <br />
-                                깨끗하고 밝은 사진일수록 도담이 더 완벽한 스타일을 추천해 드립니다.
-                            </p>
+                            <h2 className="text-4xl font-bold text-[#2d241a] font-outfit tracking-tight">아이의 매력을 보여주세요</h2>
+                            <p className="text-[#8b7355] text-lg max-w-xl mx-auto break-keep">정면 사진을 올려주시면 도담이 가장 잘 어울리는 스타일을 찾아드릴게요.</p>
                         </div>
-
-                        <div className="bg-white/40 backdrop-blur-xl rounded-[48px] p-8 md:p-12 border border-[#fff4e6] shadow-2xl shadow-orange-50/50">
+                        <div className="bg-white/40 backdrop-blur-xl rounded-[48px] p-8 md:p-12 border border-[#fff4e6] shadow-2xl">
                             <UploadZone onFileSelect={setFile} selectedFile={file} />
-
                             {file && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="max-w-md mx-auto mt-10"
-                                >
-                                    <label className="block text-base font-bold text-[#5d4d3d] mb-4 text-center">
-                                        아이의 소중한 이름을 알려주세요
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={dogName}
-                                        onChange={(e) => setDogName(e.target.value)}
-                                        placeholder="예: 두부, 초코, 별이"
-                                        className="w-full px-8 py-5 rounded-[24px] border-2 border-[#fff4e6] focus:border-pink-300 focus:ring-0 transition-all outline-none bg-white text-center text-xl placeholder:text-slate-300 text-[#2d241a] font-bold shadow-inner"
-                                    />
-                                </motion.div>
-                            )}
-
-                            {file && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 }}
-                                    className="mt-12 space-y-6"
-                                >
-                                    <label className="block text-base font-bold text-[#5d4d3d] text-center mb-6">
-                                        어떤 스타일링을 원하시나요?
-                                    </label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                                        <button
-                                            onClick={() => setMode('pictorial')}
-                                            className={`p-6 rounded-[32px] border-2 transition-all text-left flex items-start gap-4 ${mode === 'pictorial'
-                                                ? "border-pink-500 bg-pink-50 shadow-lg"
-                                                : "border-[#fff4e6] bg-white/50 hover:border-pink-200"
-                                                }`}
-                                        >
-                                            <div className={`p-3 rounded-xl ${mode === 'pictorial' ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-500"}`}>
-                                                <Stars size={24} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-[#2d241a] text-lg">감성 화보</h4>
-                                                <p className="text-sm text-[#8b7355] mt-1 line-clamp-2 break-keep">배경과 조명까지 완벽한 한 편의 화보를 만듭니다.</p>
-                                            </div>
-                                        </button>
-
-                                        <button
-                                            onClick={() => setMode('vto')}
-                                            className={`p-6 rounded-[32px] border-2 transition-all text-left flex items-start gap-4 ${mode === 'vto'
-                                                ? "border-blue-500 bg-blue-50 shadow-lg"
-                                                : "border-[#fff4e6] bg-white/50 hover:border-blue-200"
-                                                }`}
-                                        >
-                                            <div className={`p-3 rounded-xl ${mode === 'vto' ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-500"}`}>
-                                                <Bot size={24} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-[#2d241a] text-lg">리얼 피팅</h4>
-                                                <p className="text-sm text-[#8b7355] mt-1 line-clamp-2 break-keep">실제 옷을 입은 것처럼 현실적인 피팅에 집중합니다.</p>
-                                            </div>
-                                        </button>
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-md mx-auto mt-10 space-y-10">
+                                    <div className="text-center">
+                                        <label className="block text-base font-bold text-[#5d4d3d] mb-4">아이의 소중한 이름을 알려주세요</label>
+                                        <input type="text" value={dogName} onChange={(e) => setDogName(e.target.value)} placeholder="예: 두부, 별이" className="w-full px-8 py-5 rounded-[24px] border-2 border-[#fff4e6] outline-none text-center text-xl font-bold shadow-inner focus:border-pink-300 transition-all" />
+                                    </div>
+                                    <div className="space-y-6">
+                                        <label className="block text-base font-bold text-[#5d4d3d] text-center">어떤 스타일링을 원하시나요?</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {[
+                                                { id: 'pictorial', label: '감성 화보', desc: '배경과 조명까지 완벽하게', icon: Stars },
+                                                { id: 'vto', label: '리얼 피팅', desc: '실제 옷을 입은 듯한 현실적 피팅', icon: Bot }
+                                            ].map((m) => (
+                                                <button key={m.id} onClick={() => setMode(m.id as any)} className={`p-6 rounded-[32px] border-2 transition-all text-left flex items-start gap-4 ${mode === m.id ? "border-pink-500 bg-pink-50 shadow-lg" : "border-[#fff4e6] bg-white/50 hover:border-pink-200"}`}>
+                                                    <div className={`p-3 rounded-xl ${mode === m.id ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-500"}`}><m.icon size={24} /></div>
+                                                    <div><h4 className="font-bold text-[#2d241a] text-lg">{m.label}</h4><p className="text-xs text-[#8b7355] mt-1 line-clamp-2 break-keep">{m.desc}</p></div>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
                         </div>
-
                         <div className="flex justify-center pt-4">
-                            <button
-                                onClick={handleStep1Submit}
-                                disabled={!file || !mode || loading}
-                                className="px-16 py-5 bg-pink-500 hover:bg-pink-400 text-white rounded-[32px] font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-2xl shadow-pink-100 transition-all active:scale-95"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="mr-3 animate-spin" /> {loadingStep}
-                                    </>
-                                ) : (
-                                    "다음 단계로 가기"
-                                )}
+                            <button onClick={handleStep1Submit} disabled={!file || !mode || loading} className="px-16 py-5 bg-pink-500 hover:bg-pink-400 text-white rounded-[32px] font-bold text-xl disabled:opacity-50 shadow-2xl transition-all active:scale-95 flex items-center">
+                                {loading ? <><Loader2 className="mr-3 animate-spin" /> {loadingStep}</> : "다음 단계로 가기"}
                             </button>
                         </div>
                     </motion.div>
                 )}
 
                 {step === 2 && (
-                    <motion.div
-                        key="step2"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 1.02 }}
-                        className="space-y-12"
-                    >
-                        <div className="text-center space-y-6">
-                            <h2 className="text-4xl font-bold text-[#2d241a] font-outfit">어떤 모습이 어울릴까요?</h2>
-                            <p className="text-[#8b7355] text-lg">가장 시도해보고 싶은 스타일을 선택해주세요.</p>
+                    <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-12">
+                        <div className="text-center space-y-4">
+                            <h2 className="text-4xl font-bold text-[#2d241a] font-outfit">스타일링 보드</h2>
+                            <p className="text-[#8b7355] text-lg">아이에게 어울리는 조합을 직접 구성해보세요.</p>
+                        </div>
 
-                            {/* Original Dog Preview - Refined */}
-                            {previewUrl && (
-                                <div className="flex justify-center py-6">
-                                    <div className="relative w-72 h-72 rounded-[56px] overflow-hidden border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500 bg-white">
-                                        <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />
-                                    </div>
+                        {/* Styling Board: Dog (Left) | Cloth + Acc (Right) */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                            {/* Left: Base Model (Dog) - 3:4 Ratio */}
+                            <div className="lg:col-span-6 flex flex-col items-center justify-center gap-6">
+                                <div className="relative w-full aspect-[3/4] max-w-[420px] rounded-[56px] overflow-hidden group">
+                                    {previewUrl && <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="bg-white/40 backdrop-blur-xl rounded-[48px] p-8 md:p-12 border border-[#fff4e6] shadow-2xl shadow-orange-50/50">
-                            <StyleSelector
-                                selectedStyle={style}
-                                onSelect={setStyle}
-                                recommendations={recommendations}
-                                onRegenerate={handleRegenerate}
-                                regenerating={regenerating}
-                            />
-
-                            {/* Custom Style Input - Refined */}
-                            {style === 'custom' && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="max-w-2xl mx-auto space-y-4 mt-12"
-                                >
-                                    <label className="block text-xl font-bold text-[#2d241a] font-outfit flex items-center gap-2">
-                                        <Stars className="text-pink-500 fill-pink-500 w-5 h-5" />
-                                        나만의 커스텀 스타일 제안
-                                    </label>
-                                    <textarea
-                                        value={customPrompt}
-                                        onChange={(e) => setCustomPrompt(e.target.value)}
-                                        placeholder="예: 전통 한복을 입은 귀여운 도령님, 스트릿 브랜드 후드를 입은 힙한 강아지..."
-                                        className="w-full h-40 px-6 py-5 rounded-[32px] border-2 border-[#fff4e6] focus:border-pink-300 focus:ring-0 transition-all outline-none resize-none text-lg placeholder:text-slate-300 bg-white/50 text-[#2d241a] font-medium leading-relaxed"
-                                    />
-                                </motion.div>
-                            )}
-                        </div>
-
-                        <div className="flex flex-col items-center gap-8 pt-8">
-                            <div className="flex justify-center items-center gap-6">
-                                <button
-                                    onClick={() => setStep(1)}
-                                    className="px-10 py-5 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] flex items-center justify-center"
-                                >
-                                    다시 업로드하기
-                                </button>
-
-                                {!style ? (
-                                    <button
-                                        onClick={handleRegenerate}
-                                        disabled={regenerating}
-                                        className="min-w-[280px] px-10 py-5 rounded-[32px] font-bold text-pink-500 border-2 border-pink-500 hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-xl shadow-pink-50 font-outfit text-xl h-[68px] justify-center"
+                                {recommendations.length > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }} 
+                                        animate={{ opacity: 1, y: 0 }} 
+                                        className="max-w-[420px] w-full"
                                     >
-                                        {regenerating ? (
-                                            <>
-                                                <Loader2 className="mr-3 animate-spin" /> 스타일 찾는 중...
-                                            </>
-                                        ) : (
-                                            "다른 스타일 제안 받기"
-                                        )}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleStartAnalysis}
-                                        disabled={loading || (style === 'custom' && !customPrompt.trim())}
-                                        className="min-w-[280px] px-10 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-2xl shadow-pink-100 font-outfit text-xl h-[68px] justify-center"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <Loader2 className="mr-3 animate-spin" /> {loadingStep}
-                                            </>
-                                        ) : (
-                                            "스타일링 적용하기"
-                                        )}
-                                    </button>
+                                        {/* Notepad Design */}
+                                        <div className="relative bg-[#FFFEF9] p-8 rounded-sm shadow-xl border-l-[6px] border-pink-200 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+                                            {/* Pin/Clip Decoration */}
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-pink-100 rounded-full shadow-inner flex items-center justify-center">
+                                                <div className="w-2 h-2 bg-white rounded-full" />
+                                            </div>
+                                            
+                                            <div className="space-y-3">
+                                                <p className="text-[#5d4d3d] text-lg font-bold leading-relaxed break-keep tracking-tight">
+                                                    &quot;{recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]}.&quot;
+                                                </p>
+                                                <div className="pt-3 border-t border-dashed border-stone-200">
+                                                    <p className="text-pink-500 text-sm font-black flex items-center justify-center gap-2 uppercase tracking-widest">
+                                                        <Sparkles size={12} /> Style Insight
+                                                    </p>
+                                                    <p className="text-[#8b7355] text-sm mt-1 font-medium">{recommendations[0].shoppingTip}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
                                 )}
                             </div>
 
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <input 
-                                    type="checkbox" 
-                                    checked={keepBackground}
-                                    onChange={(e) => setKeepBackground(e.target.checked)}
-                                    className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 checked:border-pink-500 focus:ring-0 transition-all cursor-pointer accent-pink-500"
-                                />
-                                <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-lg">배경은 그대로 유지할래요</span>
-                            </label>
+                            {/* Right: Item Slots + Action Panel */}
+                            <div className="lg:col-span-6 flex flex-col gap-8">
+                                {/* Slots Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Clothing Slot */}
+                                    <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedCloth ? 'border-pink-500' : 'border-dashed border-pink-200'}`}>
+                                        {selectedCloth ? (
+                                            <div className="w-full h-full relative">
+                                                <img src={selectedCloth.image || selectedCloth.realProduct?.image} className="w-full h-full object-cover" alt="Selected Cloth" />
+                                                <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
+                                                <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
+                                                <div className="absolute bottom-8 inset-x-8 text-center">
+                                                    <span className="bg-pink-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">의류 큐레이션</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-pink-50/50 transition-colors">
+                                                <input type="file" className="hidden" onChange={(e) => handleItemUpload('cloth', e)} accept="image/*" />
+                                                <div className="w-20 h-20 rounded-3xl bg-pink-50 flex items-center justify-center text-pink-500 mb-6 group-hover:scale-110 transition-transform">
+                                                    <Shirt size={40} />
+                                                </div>
+                                                <p className="font-black text-[#5d4d3d] text-2xl mb-2">의류 큐레이션</p>
+                                                <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {/* Accessory Slot */}
+                                    <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedAcc ? 'border-blue-500' : 'border-dashed border-blue-200'}`}>
+                                        {selectedAcc ? (
+                                            <div className="w-full h-full relative">
+                                                <img src={selectedAcc.image || selectedAcc.realProduct?.image} className="w-full h-full object-cover" alt="Selected Acc" />
+                                                <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
+                                                <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
+                                                <div className="absolute bottom-8 inset-x-8 text-center">
+                                                    <span className="bg-blue-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">액세서리 큐레이션</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-blue-50/50 transition-colors">
+                                                <input type="file" className="hidden" onChange={(e) => handleItemUpload('acc', e)} accept="image/*" />
+                                                <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform">
+                                                    <Wand2 size={40} />
+                                                </div>
+                                                <p className="font-black text-[#5d4d3d] text-2xl mb-2">액세서리 큐레이션</p>
+                                                <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Action Panel moved here */}
+                                <div className="w-full flex flex-col items-center gap-6 py-8 bg-white/40 backdrop-blur-xl rounded-[40px] border border-[#fff4e6] shadow-xl">
+                                    <div className="w-full px-8 space-y-4">
+                                        <label className="block text-sm font-bold text-[#8b7355] text-center mb-2 flex items-center justify-center gap-2">
+                                            <Sparkles size={14} className="text-pink-500" /> 추가 요청사항이 있으신가요?
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={userRequest}
+                                            onChange={(e) => setUserRequest(e.target.value)}
+                                            placeholder="예: 조금 더 화려하게 해주세요"
+                                            className="w-full px-6 py-4 rounded-full border-2 border-white bg-white/50 focus:border-pink-300 outline-none text-center text-[#2d241a] font-medium transition-all shadow-inner"
+                                        />
+                                    </div>
+                                    <div className="flex flex-row gap-4 w-full px-8">
+                                        <button onClick={handleReset} className="flex-1 px-4 py-4 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] text-sm opacity-80">다시 업로드</button>
+                                        <button 
+                                            onClick={handleStartAnalysis} 
+                                            disabled={loading || (!style && !selectedCloth && !selectedAcc) || (style === 'custom' && !customPrompt.trim())} 
+                                            className="flex-[2] px-6 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 shadow-2xl text-lg h-[68px] flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? (
+                                                <>
+                                                    <Loader2 className="w-5 h-5 animate-spin" /> 
+                                                    <span className="text-sm">{loadingStep}</span>
+                                                </>
+                                            ) : (
+                                                <span className="truncate">{(style || selectedCloth || selectedAcc) ? "스타일링 적용" : "아이템 선택"}</span>
+                                            )}
+                                        </button>
+                                    </div>
+                                    {mode === 'pictorial' && (
+                                        <label className="flex items-center gap-3 cursor-pointer group px-8">
+                                            <input type="checkbox" checked={keepBackground} onChange={(e) => setKeepBackground(e.target.checked)} className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 transition-all cursor-pointer accent-pink-500" />
+                                            <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-sm">배경 유지</span>
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/40 backdrop-blur-xl rounded-[48px] p-8 md:p-12 border border-[#fff4e6] shadow-2xl">
+                            {mode === 'pictorial' && (
+                                <div className="mb-16">
+                                    <StyleSelector selectedStyle={style} onSelect={setStyle} recommendations={recommendations} onRegenerate={() => {}} regenerating={false} />
+                                    {style === 'custom' && (
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="max-w-2xl mx-auto space-y-4 mt-12">
+                                            <label className="block text-xl font-bold text-[#2d241a] font-outfit flex items-center gap-2"><Stars className="text-pink-500 fill-pink-500 w-5 h-5" />나만의 커스텀 스타일 제안</label>
+                                            <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="예: 전통 한복을 입은 귀여운 도령님..." className="w-full h-40 px-6 py-5 rounded-[32px] border-2 border-[#fff4e6] outline-none resize-none text-lg bg-white/50 text-[#2d241a] font-medium leading-relaxed" />
+                                        </motion.div>
+                                    )}
+                                    <div className="mt-16 pt-16 border-t border-[#fff4e6]" />
+                                </div>
+                            )}
+                            
+                            <div className="space-y-16">
+                                <div className="space-y-8 relative group/list">
+                                    <div className="flex items-center gap-3 justify-center">
+                                        <Shirt className="text-pink-500 w-6 h-6" />
+                                        <h3 className="text-xl font-bold text-[#5d4d3d]">의류 <span className="text-pink-500">큐레이션</span></h3>
+                                    </div>
+                                    
+                                    <div className="relative px-12">
+                                        <button onClick={() => scroll(clothScrollRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/80 hover:bg-white rounded-full shadow-lg border border-[#fff4e6] transition-all opacity-0 group-hover/list:opacity-100"><ChevronLeft size={24} /></button>
+                                        <button onClick={() => scroll(clothScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/80 hover:bg-white rounded-full shadow-lg border border-[#fff4e6] transition-all opacity-0 group-hover/list:opacity-100"><ChevronRight size={24} /></button>
+                                        
+                                        <div ref={clothScrollRef} className="flex gap-6 overflow-x-auto pb-6 no-scrollbar scroll-smooth px-2">
+                                            {suggestedClothes.map((item) => {
+                                                const isSelected = selectedCloth?.id === item.id;
+                                                return (
+                                                    <button 
+                                                        key={item.id} 
+                                                        onClick={() => setSelectedCloth(isSelected ? null : item)} 
+                                                        className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${isSelected ? 'border-pink-500 ring-4 ring-pink-100' : 'border-[#fff4e6] hover:border-pink-300'}`}
+                                                    >
+                                                        {item.realProduct?.image ? (
+                                                            <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-stone-300"><Shirt size={48} /></div>
+                                                        )}
+                                                        {isSelected && <div className="absolute top-6 left-6 bg-pink-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
+                                                        
+                                                        {/* Floating Information Overlay */}
+                                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
+                                                            <div className="flex gap-1.5 mb-2">
+                                                                {item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}
+                                                            </div>
+                                                            <h4 className="text-white text-lg font-bold line-clamp-1 mb-1">{item.name}</h4>
+                                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-8 relative group/list">
+                                    <div className="flex items-center gap-3 justify-center">
+                                        <Wand2 className="text-blue-500 w-6 h-6" />
+                                        <h3 className="text-xl font-bold text-[#5d4d3d]">액세서리 <span className="text-pink-500">큐레이션</span></h3>
+                                    </div>
+
+                                    <div className="relative px-12">
+                                        <button onClick={() => scroll(accScrollRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/80 hover:bg-white rounded-full shadow-lg border border-[#fff4e6] transition-all opacity-0 group-hover/list:opacity-100"><ChevronLeft size={24} /></button>
+                                        <button onClick={() => scroll(accScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/80 hover:bg-white rounded-full shadow-lg border border-[#fff4e6] transition-all opacity-0 group-hover/list:opacity-100"><ChevronRight size={24} /></button>
+
+                                        <div ref={accScrollRef} className="flex gap-6 overflow-x-auto pb-6 no-scrollbar scroll-smooth px-2">
+                                            {suggestedAccessories.map((item) => {
+                                                const isSelected = selectedAcc?.id === item.id;
+                                                return (
+                                                    <button 
+                                                        key={item.id} 
+                                                        onClick={() => setSelectedAcc(isSelected ? null : item)} 
+                                                        className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${isSelected ? 'border-blue-500 ring-4 ring-blue-100' : 'border-[#fff4e6] hover:border-blue-300'}`}
+                                                    >
+                                                        {item.realProduct?.image ? (
+                                                            <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-stone-300"><Wand2 size={48} /></div>
+                                                        )}
+                                                        {isSelected && <div className="absolute top-6 left-6 bg-blue-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
+                                                        
+                                                        {/* Floating Information Overlay */}
+                                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
+                                                            <div className="flex gap-1.5 mb-2">
+                                                                {item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}
+                                                            </div>
+                                                            <h4 className="text-white text-lg font-bold line-clamp-1 mb-1">{item.name}</h4>
+                                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}
 
                 {step === 3 && results && (
-                    <motion.div
-                        key="step3"
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        className="space-y-12"
-                    >
+                    <motion.div key="step3" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-12">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                             <div className="text-center md:text-left">
-                                <h2 className="text-4xl md:text-5xl font-extrabold text-[#2d241a] tracking-tight font-outfit">
-                                    {getNaturalName(results.dogName)}의 놀라운 변신
-                                </h2>
+                                <h2 className="text-4xl md:text-5xl font-extrabold text-[#2d241a] tracking-tight font-outfit">{getNaturalName(results.dogName)}의 놀라운 변신</h2>
                                 <p className="text-[#8b7355] text-lg mt-2">도담이 제안하는 프리미엄 스타일링 결과입니다.</p>
                             </div>
-                            <button
-                                onClick={() => setStep(1)}
-                                className="px-8 py-4 bg-white border-2 border-[#fff4e6] hover:border-pink-200 text-pink-500 rounded-full transition-all font-bold flex items-center gap-2 shadow-lg shadow-orange-50"
-                            >
-                                <ArrowLeft className="w-5 h-5" /> 새로운 스타일 시도
-                            </button>
+                            <button onClick={handleReset} className="px-8 py-4 bg-white border-2 border-[#fff4e6] hover:border-pink-200 text-pink-500 rounded-full transition-all font-bold flex items-center gap-2 shadow-lg"><ArrowLeft className="w-5 h-5" /> 새로운 스타일 시도</button>
                         </div>
-
-                        <div className="bg-white/40 backdrop-blur-xl rounded-[60px] p-8 md:p-16 border border-[#fff4e6] shadow-2xl shadow-orange-50/50">
-                            <ResultCard
-                                originalImage={results.originalImage}
-                                styledImages={results.styledImages}
-                                analysis={results.analysis}
-                                dogName={results.dogName}
-                                styleName={recommendations.find(r => r.id === style)?.name}
-                                technicalDetails={results.technicalDetails}
+                        <div className="bg-white/40 backdrop-blur-xl rounded-[60px] p-8 md:p-16 border border-[#fff4e6] shadow-2xl">
+                            <ResultCard 
+                                originalImage={results.originalImage} 
+                                styledImages={results.styledImages} 
+                                analysis={results.analysis} 
+                                shoppingTip={results.shoppingTip} 
+                                dogName={results.dogName} 
+                                styleName={
+                                    (selectedCloth || selectedAcc) 
+                                        ? [selectedCloth?.name, selectedAcc?.name].filter(Boolean).join(" + ")
+                                        : (recommendations.find(r => r.id === style)?.name || "커스텀 스타일")
+                                } 
                             />
                         </div>
-
                         <div className="mt-16 pt-16 border-t border-[#fff4e6]">
-                            <ProductRecommendation products={products} />
+                            <ProductRecommendation products={products} shoppingTip={results.shoppingTip} onLoadMore={handleLoadMoreProducts} loadingMore={loadingMore} />
                         </div>
                     </motion.div>
                 )}

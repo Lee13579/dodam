@@ -1,67 +1,95 @@
 "use client";
 
+import React from 'react';
 import { Product } from "@/types";
-import { ShoppingCart, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
+import { ExternalLink, Sparkles, Loader2, Plus } from "lucide-react";
 
 interface ProductRecommendationProps {
     products: Product[];
+    shoppingTip?: string;
+    onLoadMore?: () => void;
+    loadingMore?: boolean;
 }
 
-export default function ProductRecommendation({ products }: ProductRecommendationProps) {
+export default function ProductRecommendation({ products, shoppingTip, onLoadMore, loadingMore }: ProductRecommendationProps) {
+    if (products.length === 0) return null;
+
     return (
-        <section className="py-12">
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h2 className="text-3xl font-bold mb-2 text-slate-900">스타일 유지 아이템</h2>
-                    <p className="text-slate-500">현재 스타일에 가장 잘 어울리는 추천 제품들입니다.</p>
-                </div>
-                <div className="hidden sm:block text-indigo-600 font-medium">
-                    {products.length}개의 추천 상품
-                </div>
+        <section className="py-12 space-y-12">
+            <div className="text-center space-y-4">
+                <h2 className="text-3xl md:text-4xl font-black text-[#2D241A] font-outfit tracking-tight">
+                    스타일을 완성할 <span className="text-pink-500">추천 아이템</span>
+                </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product, idx) => (
-                    <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="group glass-card rounded-3xl border border-slate-100 hover:border-indigo-100 transition-all overflow-hidden bg-white shadow-sm hover:shadow-md"
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+                {products.map((product, idx) => {
+                    return (
+                        <motion.div
+                            key={`${product.id}-${idx}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ delay: (idx % 4) * 0.05 }}
+                            className="group flex flex-col"
+                        >
+                            <a 
+                                href={product.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="relative aspect-[3/4] rounded-[40px] overflow-hidden bg-stone-100 mb-6 block border-4 border-white shadow-lg hover:shadow-2xl transition-all duration-500"
+                            >
+                                <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                />
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <div className="bg-white/90 backdrop-blur-md text-stone-900 px-8 py-4 rounded-full font-bold text-sm flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform shadow-2xl">
+                                        상세보기 <ExternalLink size={16} />
+                                    </div>
+                                </div>
+                            </a>
+
+                            <div className="px-4 space-y-2 text-center">
+                                <h3 className="text-[#2D241A] font-bold text-lg line-clamp-1 leading-snug group-hover:text-pink-500 transition-colors">
+                                    {product.name}
+                                </h3>
+                                <div className="flex items-center justify-center gap-1">
+                                    <span className="text-pink-500 font-black text-xl font-outfit">
+                                        {product.price.toLocaleString()}원
+                                    </span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
+            <div className="pt-12 text-center border-t border-stone-50">
+                {onLoadMore && (
+                    <button
+                        onClick={onLoadMore}
+                        disabled={loadingMore}
+                        className="px-10 py-4 bg-white border-2 border-stone-200 hover:border-pink-300 hover:text-pink-500 rounded-full font-bold text-stone-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto disabled:opacity-50"
                     >
-                        <div className="h-48 bg-slate-50 relative overflow-hidden">
-                            <div className="absolute top-3 left-3 z-10 bg-white/90 shadow-sm text-[10px] font-bold px-2 py-1 rounded text-slate-500 uppercase">
-                                {product.category === "Clothing" ? "의류/패션" : product.category === "Grooming" ? "미용/케어" : "액세서리"}
-                            </div>
-                            <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                        </div>
-
-                        <div className="p-6">
-                            <h3 className="font-bold text-lg mb-2 text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                {product.name}
-                            </h3>
-                            <p className="text-slate-500 text-sm mb-6 line-clamp-2">
-                                {product.description}
-                            </p>
-
-                            <div className="flex flex-col gap-2 w-full">
-                                <a
-                                    href={product.url || `https://search.shopping.naver.com/search/all?query=${encodeURIComponent(product.name)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 px-4 py-3 bg-pink-500 text-white hover:bg-pink-600 rounded-2xl text-sm font-bold transition-all w-full"
-                                >
-                                    최저가 보러가기 <ExternalLink className="w-4 h-4" />
-                                </a>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
+                        {loadingMore ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" /> 아이템 찾는 중...
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={20} /> 추천 아이템 더보기
+                            </>
+                        )}
+                    </button>
+                )}
+                
+                <p className="text-stone-400 text-[10px] mt-8 flex items-center justify-center gap-2 opacity-60">
+                    <Sparkles size={10} />
+                    아이의 스타일과 가장 잘 어울리는 아이템을 실시간으로 큐레이션합니다.
+                </p>
             </div>
         </section>
     );

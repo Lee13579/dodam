@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface UploadZoneProps {
-    onFileSelect: (file: File) => void;
+    onFileSelect: (file: File | null) => void;
     selectedFile?: File | null;
 }
 
@@ -13,6 +13,17 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
     const [dragActive, setDragActive] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Sync preview with selectedFile prop
+    useEffect(() => {
+        if (selectedFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => setPreview(e.target?.result as string);
+            reader.readAsDataURL(selectedFile);
+        } else {
+            setPreview(null);
+        }
+    }, [selectedFile]);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -42,19 +53,14 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
 
     const handleFiles = (file: File) => {
         if (!file.type.startsWith("image/")) {
-            alert("Please upload an image file.");
+            alert("이미지 파일을 선택해주세요.");
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            setPreview(e.target?.result as string);
-            onFileSelect(file);
-        };
-        reader.readAsDataURL(file);
+        onFileSelect(file);
     };
 
     const clearFile = () => {
-        setPreview(null);
+        (onFileSelect as any)(null);
         if (inputRef.current) inputRef.current.value = "";
     };
 

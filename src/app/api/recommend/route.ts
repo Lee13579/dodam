@@ -1,98 +1,87 @@
 import { geminiModel } from "@/lib/gemini";
+import { getNaverShoppingTrends } from "@/lib/naver-datalab";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
     try {
         const { image } = await req.json();
+        if (!image) return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
 
-        if (!image) {
-            return NextResponse.json({ error: "Image is required" }, { status: 400 });
-        }
-
-        // Convert base64 to parts for Gemini
         const base64Content = image.includes(",") ? image.split(",")[1] : image;
 
-        const prompt = `
-[SYSTEM: RESPONSE MUST BE ONLY A VALID JSON OBJECT. NO CHAT. NO MARKDOWN.]
-반려견 스타일 추천 전문가로서 다음 사진을 분석해 '실제로 구매 가능한' 스타일 3가지를 골라줘.
+        // [네이버 API 극대화] 실시간 쇼핑 트렌드 데이터 수집
+        const shoppingTrends = await getNaverShoppingTrends();
+        const trendContext = shoppingTrends.join(", ");
 
-JSON 구조:
+        const prompt = `
+당신은 전 세계 상위 1%의 반려견 패션 컨설턴트입니다. 
+제공된 사진을 '초정밀 시각 스캔'하여 아이의 고유한 매력을 분석하고, 그 결과를 바탕으로 최상의 쇼핑 큐레이션을 제안하세요.
+
+### 1단계: 초정밀 시각 분석 (Deep Scan)
+- 털의 특징: 질감(곱슬, 직모, 장모 등), 색상(톤, 배색)
+- 체형 및 골격: 다리 길이, 목 두께, 가슴 너비에 따른 핏(Fit) 예측
+- 분위기: 시크함, 귀여움, 우아함, 스포티함 등 아이만의 페르소나 파악
+
+### 2단계: 전략적 큐레이션 지시
+- [중요] 쇼핑 API 최적화: 'searchKeyword'는 네이버 쇼핑이나 쿠팡에서 고퀄리티 실매물이 검색될 수 있는 '정확한 상업적 명칭'으로 작성하세요.
+- 예: 단순히 "예쁜 옷" (X) -> "강아지 트위드 자켓 핑크" (O)
+- 개수: 의류 5개, 액세서리 5개 (총 10개)를 반드시 제안하세요.
+- 트렌드 반영: 현재 인기 키워드인 [${trendContext}]를 아이의 특징과 믹스하세요.
+
+### 응답 구조 (JSON)
 {
   "concepts": [
     {
       "id": "ai_1",
-      "name": "쉬운 한글 이름",
-      "description": "추천 이유 (한글, 2줄)",
-      "koreanAnalysis": "전문가 평 (한글, 2줄)",
-      "customPrompt": "Detailed English Image-to-Image prompt. IMPORTANT: Set the background to a beautiful KOREAN location matching the style (e.g., Hanok Village, Jeju Beach, Seongsu Cafe).",
-      "vtoOutfitEnglish": "English outfit description for fitting",
-      "spatialAnalysis": {"body": [y1,x1,y2,x2], "face": [y1,x1,y2,x2]},
-      "searchKeywords": ["키워드1", "키워드2"]
+      "name": "아이의 페르소나 컨셉명",
+      "description": "분석된 외형 특징에 근거한 추천 이유",
+      "koreanAnalysis": "전문적인 시각 분석 결과 (털색, 체형, 분위기 등 3줄 요약)",
+      "shoppingTip": "이 아이의 체형을 고려한 코디 꿀팁",
+      "customPrompt": "English fashion pictorial prompt",
+      "vtoOutfitEnglish": "Precise English description for AI fitting",
+      "searchKeywords": ["대표 검색어"]
     }
+  ],
+  "suggestedClothes": [
+    { "id": "cloth_1", "name": "아이템 명칭", "searchKeyword": "API 검색용 핵심 키워드", "description": "어울리는 이유 (다정한 말투)" }
+    // ... 5개
+  ],
+  "suggestedAccessories": [
+    { "id": "acc_1", "name": "소품 명칭", "searchKeyword": "API 검색용 핵심 키워드", "description": "포인트가 되는 이유" }
+    // ... 5개
   ]
 }
-
-규칙:
-1. '모색' 대신 '털 색깔', '빈티지' 대신 '옛날 느낌' 등 쉬운 한글만 써.
-2. 번역투 절대 금지. 담백한 사장님 말투로 써.
-3. 모든 한글은 2~3줄 이내로 짧게 써.
-4. JSON 형식 외에 어떤 말도 덧붙이지 마.
 `;
 
-        // Use JSON mode
         const result = await geminiModel.generateContent({
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        {
-                            inlineData: {
-                                data: base64Content,
-                                mimeType: image.match(/data:([^;]+);/)?.[1] || "image/jpeg",
-                            },
-                        },
-                        { text: prompt },
-                    ],
-                },
-            ],
+            contents: [{
+                role: "user",
+                parts: [
+                    { inlineData: { data: base64Content, mimeType: "image/jpeg" } },
+                    { text: prompt }
+                ]
+            }],
             generationConfig: {
                 responseMimeType: "application/json",
-                maxOutputTokens: 2000, // Reduced to keep it concise and avoid truncation
-                temperature: 0.2, // Lower temperature for stricter JSON adherence
+                maxOutputTokens: 4000,
+                temperature: 0.4,
             },
         });
 
         const response = await result.response;
         let text = response.text();
-        console.log("Raw Gemini Response (first 100 chars):", text.substring(0, 100));
-        
-        // Robust JSON extraction
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-        
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            text = text.substring(firstBrace, lastBrace + 1);
-        }
+        const startIdx = text.indexOf('{');
+        const endIdx = text.lastIndexOf('}');
+        if (startIdx !== -1 && endIdx !== -1) text = text.substring(startIdx, endIdx + 1);
 
         try {
-            const data = JSON.parse(text.trim());
-            if (!data.concepts || !Array.isArray(data.concepts)) {
-                console.error("Invalid JSON structure:", text);
-                throw new Error("데이터 구조 오류");
-            }
+            const cleanedText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "").trim();
+            const data = JSON.parse(cleanedText);
             return NextResponse.json(data);
-        } catch (parseError: any) {
-            console.error("FULL FAILED TEXT:", text);
-            return NextResponse.json({ 
-                error: "데이터 해석 실패", 
-                details: parseError.message
-            }, { status: 500 });
+        } catch (e: any) {
+            return NextResponse.json({ error: "해석 실패", details: e.message }, { status: 500 });
         }
     } catch (error: any) {
-        console.error("Gemini Recommendation Error:", error);
-        return NextResponse.json({
-            error: "Recommendation failed",
-            details: error.message || "Unknown error"
-        }, { status: 500 });
+        return NextResponse.json({ error: "API 오류", details: error.message }, { status: 500 });
     }
 }

@@ -5,58 +5,64 @@ import { Product } from "@/types";
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("query");
+    const start = searchParams.get("start") || "1";
 
-    if (!query) {
-        return NextResponse.json(MOCK_PRODUCTS);
-    }
+    if (!query) return NextResponse.json(MOCK_PRODUCTS);
 
     try {
-        // --- NAVER SHOPPING API ---
-        const NAVER_ID = process.env.NAVER_CLIENT_ID;
-        const NAVER_SECRET = process.env.NAVER_CLIENT_SECRET;
+        const clientId = process.env.NAVER_CLIENT_ID;
+        const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
-        if (NAVER_ID && NAVER_SECRET) {
-            const naverRes = await fetch(
-                `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=8&filter=naverpay`,
-                {
-                    headers: {
-                        "X-Naver-Client-Id": NAVER_ID,
-                        "X-Naver-Client-Secret": NAVER_SECRET,
-                    },
-                }
-            );
+        // Create parallel fetch tasks for multiple platforms
+        const tasks = [];
 
-            if (naverRes.ok) {
-                const data = await naverRes.json();
-                const products: Product[] = data.items.map((item: any, index: number) => ({
-                    id: `naver_${index}`,
-                    name: item.title.replace(/<[^>]*>?/gm, ''), // Remove HTML tags
-                    description: `${item.lprice}원 | ${item.mallName}`,
+        // 1. Naver Shopping Task
+        if (clientId && clientSecret) {
+            tasks.push(fetch(
+                `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(query)}&display=10&start=${start}`,
+                { headers: { "X-Naver-Client-Id": clientId, "X-Naver-Client-Secret": clientSecret } }
+            ).then(async res => {
+                if (!res.ok) return [];
+                const data = await res.json();
+                return (data.items || []).map((item: any) => ({
+                    id: `naver_${item.productId || Math.random()}`,
+                    name: item.title.replace(/<[^>]*>?/gm, ''),
+                    description: `${item.mallName} | 최저가`,
                     price: parseInt(item.lprice),
                     image: item.image,
                     url: item.link,
-                    category: "Clothing"
+                    category: "Curation",
+                    source: "Naver"
                 }));
-
-                if (products.length > 0) return NextResponse.json(products);
-            }
+            }).catch(() => []));
         }
 
-        // --- COUPANG PARTNERS API (Template) ---
-        // Coupang requires a more complex signature generation. 
-        // If you have the keys, you can implement the HMAC-SHA256 signature here.
-        /*
-        const COUPANG_ACCESS_KEY = process.env.COUPANG_ACCESS_KEY;
-        const COUPANG_SECRET_KEY = process.env.COUPANG_SECRET_KEY;
-        if (COUPANG_ACCESS_KEY && COUPANG_SECRET_KEY) {
-            // ... (Signature logic would go here)
+        // 2. Coupang Partners Task (Template)
+        // Note: Real Coupang API requires HMAC signature. This represents the integration point.
+        const coupangId = process.env.COUPANG_ACCESS_KEY;
+        if (coupangId) {
+            // Implementation for Coupang search would go here
+            // tasks.push(fetchCoupangProducts(query));
         }
-        */
+
+        // 3. LinkPrice Task (Template)
+        const linkPriceId = process.env.LINKPRICE_ID;
+        if (linkPriceId) {
+            // Implementation for LinkPrice affiliate search would go here
+            // tasks.push(fetchLinkPriceProducts(query));
+        }
+
+        const allResults = await Promise.all(tasks);
+        const combinedProducts = allResults.flat();
+
+        // Priority: Sort by source (Affiliate sources first) or Similarity
+        if (combinedProducts.length > 0) {
+            return NextResponse.json(combinedProducts);
+        }
 
     } catch (error) {
-        console.error("Partners Search Error:", error);
+        console.error("Multi-channel Search Error:", error);
     }
 
-    // Fallback to mock products if API fails or no keys provided
     return NextResponse.json(MOCK_PRODUCTS);
 }
