@@ -53,6 +53,23 @@ export default function TravelLanding() {
     const [region, setRegion] = useState('');
     const [conditions, setConditions] = useState('');
 
+    const PRESET_KEYWORDS = [
+        { label: '🌳 넓은 잔디마당', value: '넓은 잔디마당이 있는 곳' },
+        { label: '🤫 조용한 분위기', value: '사람이 적고 조용한 곳' },
+        { label: '📸 사진 찍기 좋은', value: '인생샷 찍기 좋은 예쁜 곳' },
+        { label: '🐕 대형견 환영', value: '대형견 입장이 자유로운 곳' },
+        { label: '☕ 커피가 맛있는', value: '커피와 디저트가 맛있는 카페' },
+        { label: '🌊 바다가 보이는', value: '바다 전망이 좋은 산책로' },
+    ];
+
+    const toggleKeyword = (val: string) => {
+        if (conditions.includes(val)) {
+            setConditions(conditions.replace(val, '').replace('  ', ' ').trim());
+        } else {
+            setConditions((conditions + ' ' + val).trim());
+        }
+    };
+
     const [trendingPlaces, setTrendingPlaces] = useState<Place[]>([]);
     const [isTrendingLoading, setIsTrendingLoading] = useState(true);
 
@@ -355,31 +372,50 @@ export default function TravelLanding() {
                         </div>
 
                         {/* Emotional Request Input */}
-                        <div className="flex items-center gap-4 bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white hover:border-pink-200 transition-all group relative overflow-hidden">
-                            <div className="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm text-pink-500 z-10">
-                                <Sparkles size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-4 bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white hover:border-pink-200 transition-all group relative overflow-hidden">
+                                <div className="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm text-pink-500 z-10">
+                                    <Sparkles size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                                </div>
+                                <div className="flex-1 text-left relative h-10 flex flex-col justify-center">
+                                    <input
+                                        className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold p-0 text-[#1b0d12] relative z-20"
+                                        type="text"
+                                        value={conditions}
+                                        onChange={e => setConditions(e.target.value)}
+                                    />
+                                    <AnimatePresence mode="wait">
+                                        {!conditions && (
+                                            <motion.div
+                                                key={placeholderIndex}
+                                                initial={{ y: 10, opacity: 0 }}
+                                                animate={{ y: 0, opacity: 1 }}
+                                                exit={{ y: -10, opacity: 0 }}
+                                                transition={{ duration: 0.5 }}
+                                                className="absolute left-0 text-sm font-bold text-gray-400 pointer-events-none whitespace-nowrap z-10"
+                                            >
+                                                우리 아이를 위한 요청사항 (예: {AI_EXAMPLES[placeholderIndex]})
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                             </div>
-                            <div className="flex-1 text-left relative h-10 flex flex-col justify-center">
-                                <input
-                                    className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold p-0 text-[#1b0d12] relative z-20"
-                                    type="text"
-                                    value={conditions}
-                                    onChange={e => setConditions(e.target.value)}
-                                />
-                                <AnimatePresence mode="wait">
-                                    {!conditions && (
-                                        <motion.div
-                                            key={placeholderIndex}
-                                            initial={{ y: 10, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            exit={{ y: -10, opacity: 0 }}
-                                            transition={{ duration: 0.5 }}
-                                            className="absolute left-0 text-sm font-bold text-gray-400 pointer-events-none whitespace-nowrap z-10"
-                                        >
-                                            우리 아이를 위한 요청사항 (예: {AI_EXAMPLES[placeholderIndex]})
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+
+                            {/* Preset Keyword Badges */}
+                            <div className="flex flex-wrap gap-2 px-1">
+                                {PRESET_KEYWORDS.map((kw) => (
+                                    <button
+                                        key={kw.value}
+                                        onClick={() => toggleKeyword(kw.value)}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-black transition-all border ${
+                                            conditions.includes(kw.value)
+                                                ? 'bg-[#ee2b6c] text-white border-[#ee2b6c] shadow-md shadow-pink-200'
+                                                : 'bg-white/40 text-white border-white/40 hover:bg-white/60'
+                                        }`}
+                                    >
+                                        {kw.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -446,10 +482,15 @@ export default function TravelLanding() {
                                     <motion.div key={idx} whileHover={{ y: -10 }} className={`${section.layout === 'wide' ? 'w-[450px]' : 'w-[300px]'} flex-shrink-0 flex flex-col snap-start cursor-pointer`} onClick={() => router.push(`/travel/map?region=${item.address?.split(' ')[0] || item.title}&placeId=${item.id}`)}>
                                         <div className="relative h-72 rounded-[32px] overflow-hidden shadow-xl">
                                             <Image
-                                                src={item.imageUrl}
+                                                src={item.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b'}
                                                 alt={item.title}
                                                 fill
                                                 className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                                                sizes="(max-width: 768px) 100vw, 300px"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b';
+                                                }}
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
                                             {section.hasCourse && idx === 0 && <div className="absolute top-5 left-5 z-10"><span className="bg-[#ee2b6c] text-white text-[10px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-xl">도담 추천 코스</span></div>}

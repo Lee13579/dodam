@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, ExternalLink } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, CheckCircle2, Heart, Footprints, Luggage } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface Place {
     id: string;
@@ -125,6 +125,72 @@ const TravelMap: React.FC<TravelMapProps> = ({
                         )}
                     </button>
                 </div>
+
+                {/* TRIP SUMMARY (Stitch Improvement) */}
+                <AnimatePresence>
+                    {itinerary.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="space-y-4 overflow-hidden"
+                        >
+                            {/* Vitality Summary */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white p-5 rounded-[28px] border border-white shadow-sm flex flex-col items-center justify-center text-center">
+                                    <div className="w-10 h-10 bg-pink-50 rounded-2xl flex items-center justify-center text-[#ee2b6c] mb-2">
+                                        <Heart size={20} fill="currentColor" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">건강 점수</span>
+                                    <div className="flex items-baseline gap-0.5">
+                                        <span className="text-2xl font-black text-[#1b0d12]">98</span>
+                                        <span className="text-[10px] font-bold text-gray-300">/100</span>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-5 rounded-[28px] border border-white shadow-sm flex flex-col items-center justify-center text-center">
+                                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 mb-2">
+                                        <Footprints size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">산책 거리</span>
+                                    <div className="flex items-baseline gap-0.5">
+                                        <span className="text-2xl font-black text-[#1b0d12]">{(itinerary.length * 1.2).toFixed(1)}</span>
+                                        <span className="text-[10px] font-bold text-gray-300">km</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Packing Checklist */}
+                            <div className="bg-[#1b0d12] text-white p-6 rounded-[32px] shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                    <Luggage size={80} />
+                                </div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-sm font-black flex items-center gap-2">
+                                        <Luggage size={16} className="text-pink-400" />
+                                        필수 준비물
+                                    </h4>
+                                    <span className="text-[10px] font-black bg-white/10 px-2 py-1 rounded-lg">3/5 완료</span>
+                                </div>
+                                <div className="space-y-2.5">
+                                    {[
+                                        '인식표 및 리드줄',
+                                        '배변 봉투 & 물티슈',
+                                        '휴대용 식기 & 물병',
+                                        '반려견 전용 비상약',
+                                        '즐겨먹는 간식 & 사료'
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex items-center gap-3 text-xs font-bold text-white/80 group cursor-pointer hover:text-white transition-colors">
+                                            <div className={`w-5 h-5 rounded-lg flex items-center justify-center border ${i < 3 ? 'bg-pink-500 border-pink-500' : 'border-white/20'}`}>
+                                                {i < 3 && <CheckCircle2 size={12} className="text-white" />}
+                                            </div>
+                                            <span className={i < 3 ? 'line-through opacity-50' : ''}>{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Itinerary */}
                 <section>
@@ -254,6 +320,21 @@ const TravelMap: React.FC<TravelMapProps> = ({
                         )}
                     </div>
                 </section>
+            </div>
+
+            {/* AI CONCIERGE FLOATING BUTTON (Stitch Improvement) */}
+            <div className="absolute bottom-6 right-6 z-30">
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-14 h-14 bg-[#ee2b6c] text-white rounded-full shadow-2xl flex items-center justify-center group relative"
+                >
+                    <Bot size={28} />
+                    <span className="absolute right-full mr-4 px-4 py-2 bg-white text-[#1b0d12] text-xs font-black rounded-2xl shadow-xl border border-gray-100 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        무엇을 도와드릴까요? 🐶
+                    </span>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse" />
+                </motion.button>
             </div>
         </div>
     );
