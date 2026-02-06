@@ -54,18 +54,27 @@ export default function TravelLanding() {
     const [conditions, setConditions] = useState('');
 
     const PRESET_KEYWORDS = [
-        { label: '🌳 넓은 잔디마당', value: '넓은 잔디마당이 있는 곳' },
-        { label: '🤫 조용한 분위기', value: '사람이 적고 조용한 곳' },
-        { label: '📸 사진 찍기 좋은', value: '인생샷 찍기 좋은 예쁜 곳' },
-        { label: '🐕 대형견 환영', value: '대형견 입장이 자유로운 곳' },
-        { label: '☕ 커피가 맛있는', value: '커피와 디저트가 맛있는 카페' },
-        { label: '🌊 바다가 보이는', value: '바다 전망이 좋은 산책로' },
+        { label: '#넓은잔디마당', value: '넓은 잔디마당이 있는 곳' },
+        { label: '#조용한분위기', value: '사람이 적고 조용한 곳' },
+        { label: '#사진찍기좋은', value: '인생샷 찍기 좋은 예쁜 곳' },
+        { label: '#대형견환영', value: '대형견 입장이 자유로운 곳' },
+        { label: '#커피맛집', value: '커피와 디저트가 맛있는 카페' },
+        { label: '#바다산책', value: '바다 전망이 좋은 산책로' },
+        { label: '#프라이빗룸', value: '프라이빗한 개별 공간이 있는 곳' },
+        { label: '#주차편한', value: '주차가 편리한 곳' },
+        { label: '#호캉스추천', value: '럭셔리한 애견 동반 호텔' },
+        { label: '#오프리쉬존', value: '목줄 없이 뛰어놀 수 있는 곳' },
+        { label: '#애견동반식당', value: '맛있는 식사를 함께할 수 있는 곳' },
+        { label: '#루프탑뷰', value: '탁 트인 루프탑이 있는 곳' },
     ];
 
     const toggleKeyword = (val: string) => {
+        const currentCount = PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length;
+        
         if (conditions.includes(val)) {
             setConditions(conditions.replace(val, '').replace('  ', ' ').trim());
         } else {
+            if (currentCount >= 3) return; // 최대 3개 제한
             setConditions((conditions + ' ' + val).trim());
         }
     };
@@ -373,49 +382,95 @@ export default function TravelLanding() {
 
                         {/* Emotional Request Input */}
                         <div className="flex flex-col gap-3">
-                            <div className="flex items-center gap-4 bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white hover:border-pink-200 transition-all group relative overflow-hidden">
+                            <div className="flex items-center gap-4 bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white focus-within:border-pink-300 transition-all group relative overflow-hidden">
                                 <div className="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm text-pink-500 z-10">
                                     <Sparkles size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
                                 </div>
                                 <div className="flex-1 text-left relative h-10 flex flex-col justify-center">
                                     <input
-                                        className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold p-0 text-[#1b0d12] relative z-20"
+                                        className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-sm font-bold p-0 text-[#1b0d12] relative z-20"
                                         type="text"
                                         value={conditions}
-                                        onChange={e => setConditions(e.target.value)}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            if (val.length <= 60) {
+                                                setConditions(val);
+                                            } else {
+                                                setConditions(val.slice(0, 60));
+                                            }
+                                        }}
                                     />
+                                    <div className="absolute right-0 bottom-[-12px] z-30">
+                                        <span className={`text-[9px] font-black transition-colors ${
+                                            conditions.length >= 60 ? 'text-red-500' : 'text-gray-300'
+                                        }`}>
+                                            {conditions.length} / 60
+                                        </span>
+                                    </div>
                                     <AnimatePresence mode="wait">
                                         {!conditions && (
                                             <motion.div
-                                                key={placeholderIndex}
-                                                initial={{ y: 10, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                exit={{ y: -10, opacity: 0 }}
-                                                transition={{ duration: 0.5 }}
-                                                className="absolute left-0 text-sm font-bold text-gray-400 pointer-events-none whitespace-nowrap z-10"
+                                                key="instruction"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="absolute left-0 flex items-center gap-1.5 pointer-events-none z-10"
                                             >
-                                                우리 아이를 위한 요청사항 (예: {AI_EXAMPLES[placeholderIndex]})
+                                                <span className="text-sm font-black text-[#1b0d12] whitespace-nowrap opacity-80">우리 아이를 위한 요청사항</span>
+                                                <motion.span
+                                                    key={placeholderIndex}
+                                                    initial={{ x: 10, opacity: 0 }}
+                                                    animate={{ x: 0, opacity: 1 }}
+                                                    exit={{ x: -10, opacity: 0 }}
+                                                    transition={{ duration: 0.5 }}
+                                                    className="text-sm font-bold text-gray-400 whitespace-nowrap"
+                                                >
+                                                    (예: {AI_EXAMPLES[placeholderIndex]})
+                                                </motion.span>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
                                 </div>
                             </div>
 
-                            {/* Preset Keyword Badges */}
-                            <div className="flex flex-wrap gap-2 px-1">
-                                {PRESET_KEYWORDS.map((kw) => (
-                                    <button
-                                        key={kw.value}
-                                        onClick={() => toggleKeyword(kw.value)}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-black transition-all border ${
-                                            conditions.includes(kw.value)
-                                                ? 'bg-[#ee2b6c] text-white border-[#ee2b6c] shadow-md shadow-pink-200'
-                                                : 'bg-white/40 text-white border-white/40 hover:bg-white/60'
-                                        }`}
-                                    >
-                                        {kw.label}
-                                    </button>
-                                ))}
+                            {/* Preset Keyword Badges (Dense & Scattered Cloud) */}
+                            <div className="flex flex-col gap-3 w-full">
+                                <div className="flex items-center gap-2 px-2">
+                                    <div className="flex items-center bg-white/20 backdrop-blur-md rounded-xl px-3 py-1.5 gap-2 border border-white/10">
+                                        <span className="text-[11px] font-black text-white uppercase tracking-widest border-r border-white/20 pr-2">추천 키워드</span>
+                                        <span className={`text-[11px] font-black transition-colors ${
+                                            PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length >= 3 
+                                            ? 'text-pink-300' 
+                                            : 'text-white/80'
+                                        }`}>
+                                            {PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length} / 3 선택
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3 px-1 py-1 w-full">
+                                    {PRESET_KEYWORDS.map((kw, i) => {
+                                    const rotations = ['rotate-1', '-rotate-1', 'rotate-2', '-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-2'];
+                                    const offsets = ['translate-y-0', 'translate-y-1', '-translate-y-1', 'translate-y-0.5', '-translate-y-0.5', 'translate-y-1', '-translate-y-1', 'translate-y-0'];
+                                    
+                                    return (
+                                        <button
+                                            key={kw.value}
+                                            onClick={() => toggleKeyword(kw.value)}
+                                            className={`flex-grow md:flex-grow-0 px-4 py-2.5 rounded-[18px] text-[13px] font-black transition-all border shadow-sm hover:shadow-md active:scale-95 ${
+                                                rotations[i % rotations.length]
+                                            } ${
+                                                offsets[i % offsets.length]
+                                            } ${
+                                                conditions.includes(kw.value)
+                                                    ? 'bg-[#ee2b6c] text-white border-[#ee2b6c] shadow-pink-200'
+                                                    : 'bg-white text-[#1b0d12] border-white hover:bg-[#fff5f8] hover:text-[#ee2b6c] hover:border-pink-100'
+                                            }`}
+                                        >
+                                            {kw.label}
+                                        </button>
+                                    );
+                                })}
+                                </div>
                             </div>
                         </div>
 
