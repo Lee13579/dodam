@@ -7,12 +7,18 @@ import ResultCard from "./ResultCard";
 import ProductRecommendation from "./ProductRecommendation";
 import { DogStyle, Product } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Stars } from "lucide-react";
+import { Loader2, ArrowLeft, Stars, Bot } from "lucide-react";
 
-export default function StylingWorkflow() {
-    const [step, setStep] = useState(1);
+interface StylingWorkflowProps {
+    step: number;
+    setStep: (step: number) => void;
+}
+
+export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps) {
     const [file, setFile] = useState<File | null>(null);
     const [style, setStyle] = useState<DogStyle | null>(null);
+    const [mode, setMode] = useState<'pictorial' | 'vto' | null>(null);
+    const [keepBackground, setKeepBackground] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState("");
     const [dogName, setDogName] = useState("");
@@ -71,7 +77,7 @@ export default function StylingWorkflow() {
                     canvas.height = height;
                     const ctx = canvas.getContext("2d");
                     ctx?.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL("image/jpeg", 0.8));
+                    resolve(canvas.toDataURL("image/jpeg", 0.85));
                 };
             };
         });
@@ -93,8 +99,14 @@ export default function StylingWorkflow() {
             const selectedAiConcept = recommendations.find(c => c.id === style);
 
             if (selectedAiConcept) {
-                // SKIP REDUNDANT ANALYSIS: Use pre-calculated prompt and analysis from Step 1
-                generationPrompt = selectedAiConcept.customPrompt;
+                // Adjust prompt based on mode and background preference
+                if (mode === 'vto' || keepBackground) {
+                    const outfit = (selectedAiConcept as any).vtoOutfitEnglish || selectedAiConcept.name;
+                    generationPrompt = `Using the provided image, perform a precise virtual try-on. KEEP THE ORIGINAL BACKGROUND and lighting. Modify ONLY the dog's clothing to: ${outfit}. Ensure realistic fabric textures and fit.`;
+                } else {
+                    generationPrompt = selectedAiConcept.customPrompt;
+                }
+
                 analysis = selectedAiConcept.koreanAnalysis;
                 keywords = selectedAiConcept.searchKeywords || [];
                 setLoadingStep(`${dispName}의 스타일을 정교하게 다듬는 중...`);
@@ -179,14 +191,17 @@ export default function StylingWorkflow() {
                 body: JSON.stringify({ image: base64 }),
             });
             const data = await res.json();
-            if (res.ok && data.concepts) {
+            
+            if (res.ok && data.concepts && Array.isArray(data.concepts) && data.concepts.length > 0) {
                 setRecommendations(data.concepts);
+                // Transition directly to Step 2 (Style Selection)
+                setStep(2);
+            } else {
+                throw new Error("스타일 추천 데이터를 받지 못했습니다.");
             }
-            setStep(2);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Recommendation failed:", e);
-            // Even if recommendation fails, we move to step 2 so user can at least use custom style
-            setStep(2);
+            alert("죄송합니다. 스타일 추천에 실패했습니다. 잠시 후 다시 시도해주시거나 다른 사진을 사용해주세요.");
         } finally {
             setLoading(false);
             setLoadingStep("");
@@ -216,33 +231,21 @@ export default function StylingWorkflow() {
     };
 
 
+    const getNaturalName = (name?: string) => {
+        if (!name) return "아이";
+        // Check if the last character has a batchim
+        const lastChar = name.charCodeAt(name.length - 1);
+        const hasBatchim = (lastChar - 0xac00) % 28 > 0;
+        
+        // If it already ends with '이' (like '별이'), just return name
+        if (name.endsWith('이')) return name;
+        
+        // If has batchim, add '이' for natural flow (e.g. '곰돌' -> '곰돌이')
+        return hasBatchim ? `${name}이` : name;
+    };
+
     return (
         <div id="workflow" className="max-w-7xl mx-auto py-24 px-6">
-            {/* Progress Stepper - Refined */}
-            {step < 3 && (
-                <div className="flex justify-between items-center mb-20 relative max-w-lg mx-auto">
-                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-pink-100 -translate-y-1/2 z-0" />
-                    {[
-                        { num: 1, label: "사진 선택" },
-                        { num: 2, label: "스타일 결정" }
-                    ].map((s) => (
-                        <div key={s.num} className="relative z-10 flex flex-col items-center gap-3">
-                            <div
-                                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 ${step >= s.num
-                                    ? "bg-pink-500 text-white shadow-xl shadow-pink-200 scale-110"
-                                    : "bg-white border border-pink-50 text-pink-200"
-                                    }`}
-                            >
-                                {s.num}
-                            </div>
-                            <span className={`text-sm font-bold font-outfit ${step >= s.num ? "text-pink-600" : "text-slate-300"}`}>
-                                {s.label}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-
             <AnimatePresence mode="wait">
                 {step === 1 && (
                     <motion.div
@@ -256,7 +259,7 @@ export default function StylingWorkflow() {
                             <h2 className="text-4xl font-bold text-[#2d241a] font-outfit">아이의 매력을 보여주세요</h2>
                             <p className="text-[#8b7355] text-lg max-w-xl mx-auto break-keep">
                                 반려견의 정면 사진을 올려주세요. <br />
-                                깨끗하고 밝은 사진일수록 도담의 AI가 더 완벽한 스타일을 추천해 드립니다.
+                                깨끗하고 밝은 사진일수록 도담이 더 완벽한 스타일을 추천해 드립니다.
                             </p>
                         </div>
 
@@ -269,16 +272,62 @@ export default function StylingWorkflow() {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="max-w-md mx-auto mt-10"
                                 >
-                                    <label className="block text-sm font-bold text-[#5d4d3d] mb-3 font-outfit tracking-wide uppercase">
-                                        DOG NAME
+                                    <label className="block text-base font-bold text-[#5d4d3d] mb-4 text-center">
+                                        아이의 소중한 이름을 알려주세요
                                     </label>
                                     <input
                                         type="text"
                                         value={dogName}
                                         onChange={(e) => setDogName(e.target.value)}
-                                        placeholder="이름을 입력해주세요 (예: 두부)"
-                                        className="w-full px-6 py-4 rounded-2xl border-2 border-[#fff4e6] focus:border-pink-300 focus:ring-0 transition-all outline-none bg-white/50 text-lg placeholder:text-slate-300 text-[#2d241a] font-bold"
+                                        placeholder="예: 두부, 초코, 별이"
+                                        className="w-full px-8 py-5 rounded-[24px] border-2 border-[#fff4e6] focus:border-pink-300 focus:ring-0 transition-all outline-none bg-white text-center text-xl placeholder:text-slate-300 text-[#2d241a] font-bold shadow-inner"
                                     />
+                                </motion.div>
+                            )}
+
+                            {file && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="mt-12 space-y-6"
+                                >
+                                    <label className="block text-base font-bold text-[#5d4d3d] text-center mb-6">
+                                        어떤 스타일링을 원하시나요?
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                                        <button
+                                            onClick={() => setMode('pictorial')}
+                                            className={`p-6 rounded-[32px] border-2 transition-all text-left flex items-start gap-4 ${mode === 'pictorial'
+                                                ? "border-pink-500 bg-pink-50 shadow-lg"
+                                                : "border-[#fff4e6] bg-white/50 hover:border-pink-200"
+                                                }`}
+                                        >
+                                            <div className={`p-3 rounded-xl ${mode === 'pictorial' ? "bg-pink-500 text-white" : "bg-pink-50 text-pink-500"}`}>
+                                                <Stars size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-[#2d241a] text-lg">감성 화보</h4>
+                                                <p className="text-sm text-[#8b7355] mt-1 line-clamp-2 break-keep">배경과 조명까지 완벽한 한 편의 화보를 만듭니다.</p>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setMode('vto')}
+                                            className={`p-6 rounded-[32px] border-2 transition-all text-left flex items-start gap-4 ${mode === 'vto'
+                                                ? "border-blue-500 bg-blue-50 shadow-lg"
+                                                : "border-[#fff4e6] bg-white/50 hover:border-blue-200"
+                                                }`}
+                                        >
+                                            <div className={`p-3 rounded-xl ${mode === 'vto' ? "bg-blue-500 text-white" : "bg-blue-50 text-blue-500"}`}>
+                                                <Bot size={24} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-[#2d241a] text-lg">리얼 피팅</h4>
+                                                <p className="text-sm text-[#8b7355] mt-1 line-clamp-2 break-keep">실제 옷을 입은 것처럼 현실적인 피팅에 집중합니다.</p>
+                                            </div>
+                                        </button>
+                                    </div>
                                 </motion.div>
                             )}
                         </div>
@@ -286,7 +335,7 @@ export default function StylingWorkflow() {
                         <div className="flex justify-center pt-4">
                             <button
                                 onClick={handleStep1Submit}
-                                disabled={!file || loading}
+                                disabled={!file || !mode || loading}
                                 className="px-16 py-5 bg-pink-500 hover:bg-pink-400 text-white rounded-[32px] font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-2xl shadow-pink-100 transition-all active:scale-95"
                             >
                                 {loading ? (
@@ -315,8 +364,8 @@ export default function StylingWorkflow() {
 
                             {/* Original Dog Preview - Refined */}
                             {previewUrl && (
-                                <div className="flex justify-center py-4">
-                                    <div className="relative w-48 h-48 rounded-[40px] overflow-hidden border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500 bg-white">
+                                <div className="flex justify-center py-6">
+                                    <div className="relative w-72 h-72 rounded-[56px] overflow-hidden border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500 bg-white">
                                         <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />
                                     </div>
                                 </div>
@@ -353,43 +402,55 @@ export default function StylingWorkflow() {
                             )}
                         </div>
 
-                        <div className="flex justify-center gap-6 pt-8">
-                            <button
-                                onClick={() => setStep(1)}
-                                className="px-10 py-5 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50"
-                            >
-                                다시 업로드하기
-                            </button>
+                        <div className="flex flex-col items-center gap-8 pt-8">
+                            <div className="flex justify-center items-center gap-6">
+                                <button
+                                    onClick={() => setStep(1)}
+                                    className="px-10 py-5 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] flex items-center justify-center"
+                                >
+                                    다시 업로드하기
+                                </button>
 
-                            {!style ? (
-                                <button
-                                    onClick={handleRegenerate}
-                                    disabled={regenerating}
-                                    className="px-16 py-5 rounded-[32px] font-bold text-pink-500 border-2 border-pink-500 hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-xl shadow-pink-50 font-outfit text-xl"
-                                >
-                                    {regenerating ? (
-                                        <>
-                                            <Loader2 className="mr-3 animate-spin" /> 스타일 찾는 중...
-                                        </>
-                                    ) : (
-                                        "다른 스타일 제안 받기"
-                                    )}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleStartAnalysis}
-                                    disabled={loading || (style === 'custom' && !customPrompt.trim())}
-                                    className="px-16 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-2xl shadow-pink-100 font-outfit text-xl"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="mr-3 animate-spin" /> {loadingStep}
-                                        </>
-                                    ) : (
-                                        "스타일링 적용하기"
-                                    )}
-                                </button>
-                            )}
+                                {!style ? (
+                                    <button
+                                        onClick={handleRegenerate}
+                                        disabled={regenerating}
+                                        className="min-w-[280px] px-10 py-5 rounded-[32px] font-bold text-pink-500 border-2 border-pink-500 hover:bg-pink-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-xl shadow-pink-50 font-outfit text-xl h-[68px] justify-center"
+                                    >
+                                        {regenerating ? (
+                                            <>
+                                                <Loader2 className="mr-3 animate-spin" /> 스타일 찾는 중...
+                                            </>
+                                        ) : (
+                                            "다른 스타일 제안 받기"
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleStartAnalysis}
+                                        disabled={loading || (style === 'custom' && !customPrompt.trim())}
+                                        className="min-w-[280px] px-10 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-2xl shadow-pink-100 font-outfit text-xl h-[68px] justify-center"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="mr-3 animate-spin" /> {loadingStep}
+                                            </>
+                                        ) : (
+                                            "스타일링 적용하기"
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <input 
+                                    type="checkbox" 
+                                    checked={keepBackground}
+                                    onChange={(e) => setKeepBackground(e.target.checked)}
+                                    className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 checked:border-pink-500 focus:ring-0 transition-all cursor-pointer accent-pink-500"
+                                />
+                                <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-lg">배경은 그대로 유지할래요</span>
+                            </label>
                         </div>
                     </motion.div>
                 )}
@@ -405,9 +466,9 @@ export default function StylingWorkflow() {
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                             <div className="text-center md:text-left">
                                 <h2 className="text-4xl md:text-5xl font-extrabold text-[#2d241a] tracking-tight font-outfit">
-                                    {results.dogName ? results.dogName : "아이"}의 놀라운 변신
+                                    {getNaturalName(results.dogName)}의 놀라운 변신
                                 </h2>
-                                <p className="text-[#8b7355] text-lg mt-2">도담 AI가 제안하는 프리미엄 스타일링 결과입니다.</p>
+                                <p className="text-[#8b7355] text-lg mt-2">도담이 제안하는 프리미엄 스타일링 결과입니다.</p>
                             </div>
                             <button
                                 onClick={() => setStep(1)}
@@ -423,6 +484,7 @@ export default function StylingWorkflow() {
                                 styledImages={results.styledImages}
                                 analysis={results.analysis}
                                 dogName={results.dogName}
+                                styleName={recommendations.find(r => r.id === style)?.name}
                                 technicalDetails={results.technicalDetails}
                             />
                         </div>

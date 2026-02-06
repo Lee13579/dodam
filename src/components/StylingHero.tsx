@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 
 const HERO_SLIDES = [
@@ -23,18 +23,45 @@ const HERO_SLIDES = [
     }
 ];
 
+const COPY_CONCEPTS = [
+    {
+        main: <>상상 속 우리 아이의 모습, <br /> 현실이 되는 순간</>,
+        sub: <>단 한 장의 사진으로 충분합니다. 전문 디자이너가 제안하는 <br className="hidden md:block" /> 고품격 맞춤형 룩북을 지금 확인해보세요.</>
+    },
+    {
+        main: <>사진 한 장의 마법, <br /> 가장 완벽한 스타일을 입다</>,
+        sub: <>우리 아이의 특징을 완벽하게 분석하여 <br className="hidden md:block" /> 세상에 없던 스타일링을 단 몇 초 만에 완성합니다.</>
+    },
+    {
+        main: <>오직 우리 아이만을 위한 <br /> 단 하나의 퍼스널 스타일링</>,
+        sub: <>뻔한 옷이 아닌, 아이의 매력을 극대화하는 <br className="hidden md:block" /> 프리미엄 스타일 제안. 도담과 함께 특별함을 더하세요.</>
+    }
+];
+
 export default function StylingHero() {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [conceptIndex, setConceptIndex] = useState(0);
 
     useEffect(() => {
+        // Use requestAnimationFrame or a small timeout to avoid cascading renders warning
+        // but still randomize the concept on client side.
+        const raf = requestAnimationFrame(() => {
+            setConceptIndex(Math.floor(Math.random() * COPY_CONCEPTS.length));
+        });
+
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % HERO_SLIDES.length);
         }, 5000);
-        return () => clearInterval(timer);
+        return () => {
+            cancelAnimationFrame(raf);
+            clearInterval(timer);
+        };
     }, []);
 
+    const currentConcept = COPY_CONCEPTS[conceptIndex];
+
     return (
-        <section className="relative h-[80vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+        <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden">
             {/* Background Slider */}
             <AnimatePresence mode="wait">
                 <motion.div
@@ -66,19 +93,12 @@ export default function StylingHero() {
                     transition={{ duration: 0.8 }}
                     className="max-w-4xl mx-auto"
                 >
-                    <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium mb-8 shadow-xl">
-                        <Sparkles className="w-4 h-4 mr-2 text-yellow-300 fill-yellow-300" />
-                        도담 AI 스타일 디자이너 프리미엄 서비스
-                    </div>
-
                     <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 font-outfit leading-[1.1] drop-shadow-2xl">
-                        우리 아이의 가장 <br />
-                        <span className="text-pink-400">빛나는 순간</span>을 완성하다
+                        {currentConcept.main}
                     </h1>
 
                     <p className="text-lg md:text-xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed drop-shadow-lg break-keep">
-                        사진 한 장으로 완성되는 우리 아이만을 위한 <br className="hidden md:block" />
-                        고품격 맞춤형 스타일링 제안을 지금 만나보세요.
+                        {currentConcept.sub}
                     </p>
 
                     {/* Glassmorphism Action Panel */}

@@ -46,7 +46,7 @@ export default function TravelHero({ onSearch }: TravelHeroProps) {
                         transition={{ delay: 0.2 }}
                         className="text-xl text-[#8b7355] max-w-2xl mx-auto"
                     >
-                        도담 AI가 아이의 성향과 보호자의 취향을 분석해<br />최적의 동반 여행 코스를 짜드릴게요.
+                        도담이 아이의 성향과 보호자의 취향을 분석해<br />최적의 동반 여행 코스를 짜드릴게요.
                     </motion.p>
                 </div>
 

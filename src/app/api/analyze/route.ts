@@ -110,10 +110,18 @@ export async function POST(req: NextRequest) {
         });
 
         const response = await result.response;
-        const text = response.text();
+        let text = response.text();
+
+        // Robust JSON extraction
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            text = text.substring(firstBrace, lastBrace + 1);
+        }
 
         try {
-            const data = JSON.parse(text);
+            const data = JSON.parse(text.trim());
             return NextResponse.json(data);
         } catch (parseError) {
             console.error("Gemini JSON Parse Error:", text);
