@@ -32,30 +32,31 @@ export async function POST(req: NextRequest) {
             const parts: any[] = [];
 
             if (isVTO) {
-                // REAL FITTING MODE
+                // PREMIUM VIRTUAL TRY-ON (Aligned with Pictorial Quality)
                 instruction = (clothBase64 || accBase64)
-                    ? `PERFORM A PRECISE VIRTUAL TRY-ON using the provided items.
-                       [STRICT] KEEP the original dog (first image) face, body shape, and background identical.
-                       [TASK] Dress the dog naturally in the ${clothBase64 ? 'clothing item' : ''}${clothBase64 && accBase64 ? ' and ' : ''}${accBase64 ? 'accessory' : ''} shown in the subsequent images. 
-                       [DETAIL] Match the colors, patterns, and textures exactly. Ensure realistic layering and shadows.`
-                    : `PERFORM A PRECISE VIRTUAL TRY-ON.
-                       [STRICT] KEEP the original background and dog identity.
-                       [TASK] Naturally dress the dog in: ${cleanPrompt}.
-                       [DETAIL] Realistic fabric folds and shadows.`;
+                    ? `Perform a MASTER-LEVEL Virtual Try-On. 
+                       Dress the exact dog from the first image in the items shown in the following images. 
+                       [STRICT] KEEP the original dog's face, gaze, and breed features identical. 
+                       [QUALITY] Treat this as a LUXURY FASHION PICTORIAL. Use professional studio lighting and textures.
+                       [TASK] Seamlessly blend the items onto the dog's body with realistic folds, shadows, and 3D depth. 
+                       The result must be a high-end, commercial-grade photograph.`
+                    : `Perform a luxury virtual try-on. Precisely dress this dog in: ${cleanPrompt}. 
+                       Maintain the dog's exact identity. If background change is allowed, use a stunning matching location. 
+                       Professional editorial quality with realistic fabric interaction.`;
                 
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });
                 if (clothBase64) parts.push({ inlineData: { data: clothBase64, mimeType } });
                 if (accBase64) parts.push({ inlineData: { data: accBase64, mimeType } });
             } else {
-                // PICTORIAL MODE
-                const variation = i === 1 
-                    ? "Front-facing high-end commercial studio shot."
-                    : "Artistic, dynamic angle with dramatic lighting.";
-                
-                instruction = `TRANSFORM INTO A LUXURY FASHION PICTORIAL. ${variation}
-                   [TASK] Entirely replace the background to match: ${cleanPrompt}.
-                   [PRESERVE] Maintain the dog's core identity and facial features.`;
+                // CLEAN & DIRECT PICTORIAL (Sales-Focused)
+                instruction = `Transform this dog into a luxury fashion pictorial.
+                   [STYLING] Dress the dog in the fashion items described: ${cleanPrompt}.
+                   [FOCUS] Highlight the clothing details (texture, buttons, patterns) to make them look desirable and shoppable.
+                   [SCENE] Change the background to a beautiful, matching location with a warm and cozy atmosphere.
+                   [MOOD] Apply cinematic color grading and soft, dreamy lighting.
+                   [PRESERVE] Maintain the dog's exact facial features and breed characteristics.
+                   Ultra-realistic, professional commercial quality.`;
                 
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });

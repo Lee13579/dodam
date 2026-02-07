@@ -14,41 +14,42 @@ export async function POST(req: NextRequest) {
         const trendContext = shoppingTrends.join(", ");
 
         const prompt = `
-당신은 전 세계 상위 1%의 반려견 패션 컨설턴트입니다. 
-제공된 사진을 '초정밀 시각 스캔'하여 아이의 고유한 매력을 분석하고, 그 결과를 바탕으로 최상의 쇼핑 큐레이션을 제안하세요.
+당신은 대한민국 최고의 반려견 스타일 전문가입니다. 사진 속 강아지를 분석해 다음 두 가지 작업을 동시에 수행하세요.
 
-### 1단계: 초정밀 시각 분석 (Deep Scan)
-- 털의 특징: 질감(곱슬, 직모, 장모 등), 색상(톤, 배색)
-- 체형 및 골격: 다리 길이, 목 두께, 가슴 너비에 따른 핏(Fit) 예측
-- 분위기: 시크함, 귀여움, 우아함, 스포티함 등 아이만의 페르소나 파악
+### 작업 1: 화보 컨셉 제안 (스타일 모드용)
+- 고정된 의상 카테고리에 얽매이지 마세요.
+- **[K-컨셉 및 로컬 감성 극대화]**: 모든 컨셉은 한국의 장소, 문화, 일상 감성을 바탕으로 하세요. 
+- 예: '성수동 카페 힙스터', '제주도 감귤밭 나들이', '경복궁 도령님', '한강 공원 피크닉' 등 우리에게 친숙하고 공감 가는 **'로컬 페르소나 화보'**를 적극 제안하세요. (해외 배경이나 명칭은 지양하세요)
+- **[초강력 지시] '털'이라는 단어는 어떤 경우에도 절대 사용하지 마세요.** 대신 '모색', '코트', '결', '질감' 등의 전문적인 표현만 사용하세요.
+- **[톤앤매너]**: 컨셉 이름은 위트 있게 짓되, 분석 설명은 글로벌 패션 매거진 에디터처럼 품격 있게 서술하세요.
+- 예: "윤기 나는 브라운 코트의 색감이 제주 감귤밭의 상큼함과 어우러져, 아이만의 싱그러운 매력을 극대화하는 로컬 화보 컨셉입니다."
 
-### 2단계: 전략적 큐레이션 지시
-- [중요] 쇼핑 API 최적화: 'searchKeyword'는 네이버 쇼핑이나 쿠팡에서 고퀄리티 실매물이 검색될 수 있는 '정확한 상업적 명칭'으로 작성하세요.
-- 예: 단순히 "예쁜 옷" (X) -> "강아지 트위드 자켓 핑크" (O)
-- 개수: 의류 5개, 액세서리 5개 (총 10개)를 반드시 제안하세요.
-- 트렌드 반영: 현재 인기 키워드인 [${trendContext}]를 아이의 특징과 믹스하세요.
+### 작업 2: 실전 큐레이션 (피팅 모드용)
+- 현재 인기 트렌드 [${trendContext}]를 반영하여, 실제로 입혀볼 수 있는 의류 5개, 액세서리 5개를 골라주세요.
+- 쇼핑 검색이 잘 되는 정확한 상품명을 사용하세요.
 
-### 응답 구조 (JSON)
+### 필독: 응답 데이터 구조 (JSON)
 {
-  "concepts": [
+  "concepts": [ // 화보 컨셉 3개 (필수)
     {
-      "id": "ai_1",
-      "name": "아이의 페르소나 컨셉명",
-      "description": "분석된 외형 특징에 근거한 추천 이유",
-      "koreanAnalysis": "전문적인 시각 분석 결과 (털색, 체형, 분위기 등 3줄 요약)",
-      "shoppingTip": "이 아이의 체형을 고려한 코디 꿀팁",
-      "customPrompt": "English fashion pictorial prompt",
-      "vtoOutfitEnglish": "Precise English description for AI fitting",
-      "searchKeywords": ["대표 검색어"]
-    }
+      "id": "style_1",
+      "name": "컨셉 이름 (예: 제주도 유채꽃 산책)",
+      "description": "추천 이유 (따뜻한 말투, 한글 2줄)",
+      "koreanAnalysis": "아이의 매력 포인트 분석 (다정한 말투, 한글 2줄)",
+      "shoppingTip": "이 스타일을 더 돋보이게 할 한 줄 코디 팁",
+      "customPrompt": "High-quality English image generation prompt for this concept",
+      "searchKeywords": ["검색어1", "검색어2"]
+    },
+    { "id": "style_2", ... },
+    { "id": "style_3", ... }
   ],
-  "suggestedClothes": [
-    { "id": "cloth_1", "name": "아이템 명칭", "searchKeyword": "API 검색용 핵심 키워드", "description": "어울리는 이유 (다정한 말투)" }
-    // ... 5개
+  "suggestedClothes": [ // 의류 5개 (필수)
+    { "id": "cloth_1", "name": "상품명", "searchKeyword": "검색어", "description": "추천 이유" },
+    // ...
   ],
-  "suggestedAccessories": [
-    { "id": "acc_1", "name": "소품 명칭", "searchKeyword": "API 검색용 핵심 키워드", "description": "포인트가 되는 이유" }
-    // ... 5개
+  "suggestedAccessories": [ // 소품 5개 (필수)
+    { "id": "acc_1", "name": "상품명", "searchKeyword": "검색어", "description": "추천 이유" },
+    // ...
   ]
 }
 `;

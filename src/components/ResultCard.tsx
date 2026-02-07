@@ -10,12 +10,13 @@ interface ResultCardProps {
     originalImage: string;
     styledImages: string[];
     analysis: string;
+    description?: string; // Added description
     shoppingTip?: string;
     dogName?: string;
     styleName?: string;
 }
 
-export default function ResultCard({ originalImage, styledImages, analysis, shoppingTip, dogName, styleName }: ResultCardProps) {
+export default function ResultCard({ originalImage, styledImages, analysis, description, shoppingTip, dogName, styleName }: ResultCardProps) {
     const noteColor = getStyleColor(styleName || '도담 스타일');
 
     const handleDownload = async (imgUrl: string, index: number) => {
@@ -130,35 +131,50 @@ export default function ResultCard({ originalImage, styledImages, analysis, shop
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 items-start">
+            <div className="grid grid-cols-1 gap-12 items-start mt-16">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="bg-white rounded-[40px] p-10 md:p-16 shadow-2xl shadow-stone-100 border border-stone-100 relative overflow-hidden"
+                    className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl shadow-stone-100 border border-stone-100 relative overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-pink-50 rounded-bl-[120px] -z-10 opacity-50" />
-                    <h3 className="text-3xl font-black mb-8 flex items-center gap-3 text-[#2D241A] font-outfit tracking-tight">
-                        <Stars className="w-8 h-8 text-pink-500" />
-                        도담의 안목
-                    </h3>
-                    <p className="text-stone-600 text-2xl leading-relaxed font-medium italic whitespace-pre-line break-keep">
-                        &quot;{analysis}&quot;
-                    </p>
-
-                    {shoppingTip && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.8 }}
-                            className="mt-10 pt-8 border-t border-pink-100"
-                        >
-                            <p className="text-pink-600 text-lg font-bold flex items-center gap-2">
-                                <span className="bg-pink-100 px-3 py-1 rounded-full text-sm uppercase tracking-wider">스타일 팁</span>
-                                {shoppingTip}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-pink-50 rounded-bl-[160px] -z-10 opacity-40" />
+                    
+                    <div className="space-y-16">
+                        {/* Section 1: Emotional Analysis Quote */}
+                        <div className="relative">
+                            <span className="absolute -top-10 -left-6 text-9xl text-pink-100 font-serif serif pointer-events-none select-none">&ldquo;</span>
+                            <p className="text-stone-700 text-3xl md:text-4xl font-black leading-tight break-keep relative z-10">
+                                {analysis}
                             </p>
-                        </motion.div>
-                    )}
+                        </div>
+
+                        {/* Section 2: Concept Briefing & Practical Styling Guide */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-12 border-t border-stone-100">
+                            {/* Concept Story */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-black text-pink-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                                    <Stars size={14} /> Concept Story
+                                </h4>
+                                <p className="text-stone-600 text-xl font-bold leading-relaxed break-keep">
+                                    {description || "아이의 개성과 현재 트렌드를 조화롭게 믹스한 도담만의 단독 스타일링 컨셉입니다."}
+                                </p>
+                            </div>
+
+                            {/* Styling Guide */}
+                            {shoppingTip && (
+                                <div className="space-y-4 bg-[#FFFEF9] p-8 rounded-[32px] border border-pink-100 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-12 h-12 bg-pink-50 rounded-bl-full" />
+                                    <h4 className="text-xs font-black text-stone-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                                        <Sparkles size={14} /> Styling Guide
+                                    </h4>
+                                    <p className="text-[#8B7355] text-lg font-bold leading-relaxed break-keep">
+                                        {shoppingTip}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </motion.div>
             </div>
         </div>
