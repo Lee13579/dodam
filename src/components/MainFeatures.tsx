@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Scissors, MapPin, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -16,10 +16,11 @@ export default function MainFeatures() {
                         whileHover={{ y: -10 }}
                         className="relative h-[400px] md:h-[500px] rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl shadow-pink-100/50"
                     >
-                        <img
+                        <Image
                             src="/images/styles/streetwear.png"
                             alt="Styling"
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 via-pink-900/20 to-transparent" />
 
@@ -39,10 +40,11 @@ export default function MainFeatures() {
                         whileHover={{ y: -10 }}
                         className="relative h-[400px] md:h-[500px] rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl shadow-blue-100/50"
                     >
-                        <img
+                        <Image
                             src="/dog_travel_forest_1770088705081.png"
                             alt="Travel"
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 via-blue-900/20 to-transparent" />
 

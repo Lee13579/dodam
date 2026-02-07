@@ -1,4 +1,4 @@
-import { geminiImageModel, geminiModel } from "@/lib/gemini";
+import { geminiImageModel } from "@/lib/gemini";
 import { NextRequest, NextResponse } from "next/server";
 
 async function getBase64FromUrl(url: string): Promise<string> {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Star, Share2, Heart, ExternalLink, MessageCircle, Dog, Coffee, Clock, Check } from 'lucide-react';
+import Image from 'next/image';
 
 interface Place {
     id: string;
@@ -60,10 +61,12 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                     >
                         {/* 1. Header & Image */}
                         <div className="relative h-[320px] flex-shrink-0">
-                            <img
+                            <Image
                                 src={place.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b'}
                                 alt={place.title}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
@@ -210,7 +213,13 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                                 {activeTab === 'location' && (
                                     <motion.div key="location" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-64 bg-gray-200 rounded-3xl flex items-center justify-center text-gray-400 font-bold overflow-hidden relative">
                                         {/* Placeholder Map Image */}
-                                        <img src="https://assets.website-files.com/5a5bd2789139820001552a8a/5a676b2bd76ed30001886133_map-placeholder.jpg" className="w-full h-full object-cover opacity-50" alt="Map" />
+                                        <Image
+                                            src="https://assets.website-files.com/5a5bd2789139820001552a8a/5a676b2bd76ed30001886133_map-placeholder.jpg"
+                                            alt="Map"
+                                            fill
+                                            className="object-cover opacity-50"
+                                            unoptimized
+                                        />
                                         <div className="absolute flex flex-col items-center">
                                             <MapPin size={32} className="text-[#ee2b6c] mb-2 drop-shadow-md" />
                                             <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-xl shadow-sm text-xs">{place.address}</span>

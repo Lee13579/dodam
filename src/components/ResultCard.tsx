@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Download, Share2, Stars, Sparkles, RefreshCw, ArrowLeft, Loader2 } from "lucide-react";
+import { Download, Share2, RefreshCw, Loader2 } from "lucide-react";
 import { getStyleColor } from '@/lib/utils';
 import { applyNoteWatermark } from '@/lib/watermark';
 
@@ -12,17 +12,14 @@ interface ResultCardProps {
     styledImages: string[];
     analysis: string;
     baseAnalysis?: string; // Initial dog analysis from Step 2
-    description?: string;
-    shoppingTip?: string;
     dogName?: string;
     styleName?: string;
-    keywords?: string[];
     personalColor?: string;
     onRetry?: () => void;
     retryCount?: number;
 }
 
-export default function ResultCard({ originalImage, styledImages, analysis, baseAnalysis, description, shoppingTip, dogName, styleName, keywords, personalColor, onRetry, retryCount = 0 }: ResultCardProps) {
+export default function ResultCard({ originalImage, styledImages, analysis, baseAnalysis, dogName, styleName, personalColor, onRetry, retryCount = 0 }: ResultCardProps) {
     const noteColor = personalColor || getStyleColor(styleName || '도담 스타일');
 
     const handleDownload = async (imgUrl: string, index: number) => {
@@ -55,10 +52,12 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                     className="lg:col-span-3"
                 >
                     <div className="relative aspect-[4/5] rounded-[40px] overflow-hidden border-8 border-white shadow-2xl rotate-[-1deg] hover:rotate-0 transition-transform duration-500 group bg-stone-50">
-                        <img
+                        <Image
                             src={originalImage}
                             alt="Original Dog"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-700"
+                            unoptimized
                         />
                         
                         {/* Internal Note Overlay for Original - Micro Minimal */}

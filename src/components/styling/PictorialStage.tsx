@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Stars, Loader2 } from "lucide-react";
 import StyleSelector from "../StyleSelector";
 import { DogStyle, AiConcept } from "@/types";
+import Image from "next/image";
 
 interface PictorialStageProps {
     previewUrl: string | null;
@@ -44,7 +45,15 @@ export default function PictorialStage({
             <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center max-w-5xl mx-auto px-6">
                 <div className="md:col-span-6 flex justify-center md:justify-end">
                     <div className="relative w-full aspect-[3/4] max-w-[320px] rounded-[48px] overflow-hidden z-0 border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
-                        {previewUrl && <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />}
+                        {previewUrl && (
+                            <Image
+                                src={previewUrl}
+                                alt="Dog preview"
+                                fill
+                                className="object-cover"
+                                unoptimized
+                            />
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
                     </div>
                 </div>

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Shirt, Wand2, X, Check, Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { AiConcept, SuggestedItem } from "@/types";
+import Image from "next/image";
 
 interface FittingStageProps {
     previewUrl: string | null;
@@ -63,7 +64,15 @@ export default function FittingStage({
                 {/* Left: Base Model (Dog) */}
                 <div className="lg:col-span-6 flex flex-col items-center justify-center">
                     <div className="relative w-full aspect-[3/4] max-w-[420px] rounded-[56px] overflow-hidden z-0">
-                        {previewUrl && <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />}
+                        {previewUrl && (
+                            <Image
+                                src={previewUrl}
+                                alt="Dog preview"
+                                fill
+                                className="object-cover"
+                                unoptimized
+                            />
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
                     </div>
                     {recommendations.length > 0 && (
@@ -89,10 +98,16 @@ export default function FittingStage({
                         <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedCloth ? 'border-pink-500' : 'border-dashed border-pink-200'}`}>
                             {selectedCloth ? (
                                 <div className="w-full h-full relative">
-                                    <img src={selectedCloth.image || selectedCloth.realProduct?.image} className="w-full h-full object-cover" alt="Selected Cloth" />
+                                    <Image
+                                        src={selectedCloth.image || selectedCloth.realProduct?.image || ""}
+                                        alt="Selected Cloth"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
+                                    />
                                     <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                    <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
-                                    <div className="absolute bottom-8 inset-x-8 text-center">
+                                    <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all z-10"><X size={20} /></button>
+                                    <div className="absolute bottom-8 inset-x-8 text-center z-10">
                                         <span className="bg-pink-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">의류 큐레이션</span>
                                     </div>
                                 </div>
@@ -110,10 +125,16 @@ export default function FittingStage({
                         <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedAcc ? 'border-blue-500' : 'border-dashed border-blue-200'}`}>
                             {selectedAcc ? (
                                 <div className="w-full h-full relative">
-                                    <img src={selectedAcc.image || selectedAcc.realProduct?.image} className="w-full h-full object-cover" alt="Selected Acc" />
+                                    <Image
+                                        src={selectedAcc.image || selectedAcc.realProduct?.image || ""}
+                                        alt="Selected Acc"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
+                                    />
                                     <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                    <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
-                                    <div className="absolute bottom-8 inset-x-8 text-center">
+                                    <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all z-10"><X size={20} /></button>
+                                    <div className="absolute bottom-8 inset-x-8 text-center z-10">
                                         <span className="bg-blue-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">액세서리 큐레이션</span>
                                     </div>
                                 </div>
@@ -163,7 +184,19 @@ export default function FittingStage({
                         <div ref={clothScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
                             {suggestedClothes.map((item) => (
                                 <button key={item.id} onClick={() => setSelectedCloth(selectedCloth?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedCloth?.id === item.id ? 'border-pink-500 ring-4 ring-pink-100' : 'border-[#fff4e6] hover:border-pink-300'}`}>
-                                    {item.realProduct?.image ? <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-stone-300"><Shirt size={48} /></div>}
+                                    {item.realProduct?.image ? (
+                                        <Image
+                                            src={item.realProduct.image}
+                                            alt={item.name}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                            <Shirt size={48} />
+                                        </div>
+                                    )}
                                     {selectedCloth?.id === item.id && <div className="absolute top-6 left-6 bg-pink-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
                                         <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>
@@ -188,7 +221,19 @@ export default function FittingStage({
                         <div ref={accScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
                             {suggestedAccessories.map((item) => (
                                 <button key={item.id} onClick={() => setSelectedAcc(selectedAcc?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedAcc?.id === item.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-[#fff4e6] hover:border-blue-300'}`}>
-                                    {item.realProduct?.image ? <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-stone-300"><Wand2 size={48} /></div>}
+                                    {item.realProduct?.image ? (
+                                        <Image
+                                            src={item.realProduct.image}
+                                            alt={item.name}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                            <Wand2 size={48} />
+                                        </div>
+                                    )}
                                     {selectedAcc?.id === item.id && <div className="absolute top-6 left-6 bg-blue-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
                                         <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>

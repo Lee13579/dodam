@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface UploadZoneProps {
     onFileSelect: (file: File | null) => void;
@@ -63,7 +64,7 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
     };
 
     const clearFile = () => {
-        (onFileSelect as any)(null);
+        onFileSelect(null);
         if (inputRef.current) inputRef.current.value = "";
     };
 
@@ -110,17 +111,19 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="relative rounded-[40px] overflow-hidden border border-[#fff4e6] p-6 bg-white/60 backdrop-blur-xl shadow-2xl shadow-orange-100/30"
                     >
-                        <div className="relative rounded-[32px] overflow-hidden group">
-                            <img
+                        <div className="relative rounded-[32px] overflow-hidden group h-96">
+                            <Image
                                 src={preview}
                                 alt="Preview"
-                                className="w-full h-96 object-cover transition-transform duration-700 group-hover:scale-105"
+                                fill
+                                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                unoptimized
                             />
                             <div className="absolute inset-0 bg-black/10 transition-opacity group-hover:opacity-0" />
                         </div>
                         <button
                             onClick={clearFile}
-                            className="absolute top-10 right-10 p-3 bg-white/90 text-[#2d241a] rounded-full hover:bg-white shadow-2xl transition-all scale-100 active:scale-90 hover:text-pink-500"
+                            className="absolute top-10 right-10 p-3 bg-white/90 text-[#2d241a] rounded-full hover:bg-white shadow-2xl transition-all scale-100 active:scale-90 hover:text-pink-500 z-10"
                         >
                             <X className="w-6 h-6" />
                         </button>

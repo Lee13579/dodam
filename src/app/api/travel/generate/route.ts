@@ -1,7 +1,7 @@
 import { geminiModel } from "@/lib/gemini";
 import { searchNaverPlaces, TransformedPlace } from "@/lib/naver-search";
-import { fetchAgodaHotels, AgodaHotel } from "@/lib/agoda-service";
-import { fetchKlookProducts, KlookProduct } from "@/lib/klook-service";
+import { fetchAgodaHotels } from "@/lib/agoda-service";
+import { fetchKlookProducts } from "@/lib/klook-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       queries = [`${region} 애견 카페`, `${region} 공원`, `${region} 맛집`];
     }
 
-    // Fetch Naver
+    // Naver Places API fetch
     const searchPromises = queries.map(query => searchNaverPlaces(query, 1));
     const searchResults = await Promise.all(searchPromises);
     const naverPlaces: TransformedPlace[] = searchResults.flat().filter(p => p !== undefined && p.id !== undefined).map(p => ({
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     // This cheats the map to show them near the destination
     const referencePlace = naverPlaces[0];
     if (referencePlace) {
-      allPlaces.forEach((p, idx) => {
+      allPlaces.forEach((p) => {
         if (p.lat === 0 && p.lng === 0) {
           // Add slight jitter so they don't stack exactly
           p.lat = referencePlace.lat + (Math.random() * 0.01 - 0.005);

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Scissors, Heart, MapPin } from "lucide-react";
+import { Heart } from "lucide-react";
 import Link from "next/link";
 
 export default function Hero() {

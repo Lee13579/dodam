@@ -4,6 +4,7 @@ import React from 'react';
 import { Product } from "@/types";
 import { motion } from "framer-motion";
 import { ExternalLink, Sparkles, Loader2, Plus } from "lucide-react";
+import Image from "next/image";
 
 interface ProductRecommendationProps {
     products: Product[];
@@ -71,10 +72,12 @@ export default function ProductRecommendation({ products, onLoadMore, loadingMor
                                 rel="noopener noreferrer"
                                 className="relative aspect-[3/4] rounded-[40px] overflow-hidden bg-stone-100 mb-6 block border-4 border-white shadow-lg hover:shadow-2xl transition-all duration-500"
                             >
-                                <img
+                                <Image
                                     src={product.image}
                                     alt={product.name}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                    fill
+                                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                    unoptimized
                                 />
                                 {/* Hover Overlay */}
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

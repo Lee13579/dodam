@@ -56,7 +56,7 @@ interface MapContainerProps {
 
 const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
     const mapRef = useRef<HTMLDivElement>(null);
-    const mapInstance = useRef<any>(null);
+    const mapInstance = useRef<InstanceType<NaverMaps['Map']> | null>(null);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [mapError, setMapError] = useState<string | null>(null);
 
@@ -101,7 +101,7 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
                     mapDataControl: false,
                 };
 
-                mapInstance.current = new maps.Map(mapRef.current, mapOptions);
+                mapInstance.current = new maps.Map(mapRef.current, mapOptions) as any;
                 setIsMapLoaded(true);
                 return true;
             } catch (e: any) {
@@ -128,8 +128,8 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
     }, []);
 
     // Marker management
-    const markerInstances = useRef<Map<string, any>>(new Map());
-    const polylineInstance = useRef<any>(null);
+    const markerInstances = useRef<Map<string, InstanceType<NaverMaps['Marker']>>>(new Map());
+    const polylineInstance = useRef<InstanceType<NaverMaps['Polyline']> | null>(null);
 
     // Effect: Update markers
     useEffect(() => {
@@ -144,7 +144,7 @@ const MapContainer: React.FC<MapContainerProps> = ({ markers, focusedId }) => {
             polylineInstance.current.setMap(null);
         }
 
-        const path: any[] = [];
+        const path: unknown[] = [];
         const bounds = new maps.LatLngBounds();
 
         markers.forEach((marker, index) => {

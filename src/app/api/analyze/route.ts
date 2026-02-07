@@ -1,5 +1,6 @@
 import { geminiModel } from "@/lib/gemini";
 import { NextRequest, NextResponse } from "next/server";
+import { HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
     try {
@@ -91,20 +92,20 @@ export async function POST(req: NextRequest) {
             },
             safetySettings: [
                 {
-                    category: "HARM_CATEGORY_HARASSMENT" as any,
-                    threshold: "BLOCK_NONE" as any,
+                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
                 },
                 {
-                    category: "HARM_CATEGORY_HATE_SPEECH" as any,
-                    threshold: "BLOCK_NONE" as any,
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
                 },
                 {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT" as any,
-                    threshold: "BLOCK_NONE" as any,
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
                 },
                 {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT" as any,
-                    threshold: "BLOCK_NONE" as any,
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
                 },
             ],
         });
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
         try {
             const data = JSON.parse(text.trim());
             return NextResponse.json(data);
-        } catch (parseError) {
+        } catch {
             console.error("Gemini JSON Parse Error:", text);
             return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
         }

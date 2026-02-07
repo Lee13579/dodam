@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MOCK_PRODUCTS } from "@/constants";
-import { Product } from "@/types";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);

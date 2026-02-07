@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import UploadZone from "./UploadZone";
 import ResultCard from "./ResultCard";
 import ProductRecommendation from "./ProductRecommendation";
@@ -8,7 +8,7 @@ import PictorialStage from "./styling/PictorialStage";
 import FittingStage from "./styling/FittingStage";
 import { DogStyle, Product, AiConcept, SuggestedItem } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Stars, Bot, X, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ArrowLeft, Bot, Stars } from "lucide-react";
 import { getNaturalName } from "@/lib/utils";
 
 interface StylingWorkflowProps {
@@ -99,19 +99,6 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     const [suggestedClothes, setSuggestedClothes] = useState<SuggestedItem[]>([]);
     const [suggestedAccessories, setSuggestedAccessories] = useState<SuggestedItem[]>([]);
     
-    // Scroll Refs
-    const clothScrollRef = useRef<HTMLDivElement>(null);
-    const accScrollRef = useRef<HTMLDivElement>(null);
-
-    const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
-        if (!ref.current) return;
-        const scrollAmount = 400;
-        ref.current.scrollBy({
-            left: direction === 'left' ? -scrollAmount : scrollAmount,
-            behavior: 'smooth'
-        });
-    };
-
     // Selection state for VTO
     const [selectedCloth, setSelectedCloth] = useState<SuggestedItem | null>(null);
     const [selectedAcc, setSelectedAcc] = useState<SuggestedItem | null>(null);
@@ -463,10 +450,7 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                                 styledImages={results.styledImages} 
                                 analysis={results.analysis} 
                                 baseAnalysis={results.baseAnalysis}
-                                description={results.description}
-                                shoppingTip={results.shoppingTip} 
                                 dogName={results.dogName} 
-                                keywords={results.keywords}
                                 personalColor={results.personalColor}
                                 onRetry={handleRetry}
                                 retryCount={retryCount}
