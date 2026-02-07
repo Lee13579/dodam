@@ -10,11 +10,17 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-const THEMES = [
+import { getSmartSeasonalTheme } from "@/lib/naver-datalab";
+
+// ... (imports)
+
+// Note: We need to make this async or handle it inside the GET since getSmartSeasonalTheme is async
+// But THEMES constant was static. We need to reconstruct THEMES inside the handler or make a dynamic getter.
+
+const STATIC_THEMES = [
     { id: 'resort', title: '우리 아이 호캉스 🏨', subtitle: '따뜻한 실내에서 즐기는 프리미엄 휴식', queries: ["애견동반 호텔", "반려견 동반 리조트", "애견 풀빌라"] },
     { id: 'dining', title: '함께 즐기는 미식 🍴', subtitle: '반려견과 편안하게 식사할 수 있는 맛집과 카페', queries: ["반려견 동반 식당", "애견 동반 브런치", "강아지 가능 카페", "애견 동반 바베큐"] },
-    { id: 'play', title: '오프리쉬 자유시간 🐾', subtitle: '활동적인 아이들을 위한 최적의 놀이 코스', queries: ["애견 운동장", "강아지 수영장", "애견 테마파크", "반려견 축제"] },
-    { id: 'nature', title: '계절을 걷는 산책로 🌳', subtitle: '맑은 공기 마시며 즐기는 야외 산책', queries: ["애견동반 캠핑장", "반려견 동반 산책로", "애견 글램핑", "강아지 산책 공원"] }
+    { id: 'play', title: '오프리쉬 자유시간 🐾', subtitle: '활동적인 아이들을 위한 최적의 놀이 코스', queries: ["애견 운동장", "강아지 수영장", "애견 테마파크", "반려견 축제"] }
 ];
 
 export async function GET(req: Request) {
@@ -24,9 +30,16 @@ export async function GET(req: Request) {
         const lng = searchParams.get('lng');
         const isLocationAvailable = lat && lng;
 
+        const seasonalTheme = await getSmartSeasonalTheme();
+        const themes = [
+            ...STATIC_THEMES,
+            { id: 'nature', ...seasonalTheme }
+        ];
+
         const results = [];
 
-        for (const theme of THEMES) {
+        for (const theme of themes) {
+            // ... (rest of the logic)
             // 1. Try to fetch from Supabase first
             let queryBuilder = supabaseAdmin.from('places').select('*').eq('theme_id', theme.id);
 
@@ -78,7 +91,12 @@ export async function GET(req: Request) {
                     .slice(0, 10)
                     .map(async place => {
                         const charCodeSum = place.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-                        const mirroredUrl = await mirrorExternalImage(place.imageUrl || '');
+                        // Image is already handled by searchNaverPlaces (returns Naver URL or Placeholder)
+                        // But let's verify if mirrorExternalImage is needed. 
+                        // Actually searchNaverPlaces returns a direct URL or local path.
+                        // mirrorExternalImage handles 'http' urls. Let's keep it safe but it might be redundant.
+                        const mirroredUrl = place.imageUrl.startsWith('/') ? place.imageUrl : await mirrorExternalImage(place.imageUrl || '');
+
                         return {
                             id: place.id,
                             title: place.title,

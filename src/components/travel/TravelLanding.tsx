@@ -44,6 +44,73 @@ const AI_EXAMPLES = [
     "대형견도 눈치 보지 않고 편히 쉴 수 있는 넓은 숙소"
 ];
 
+// [NEW] Travel League Component
+const TravelLeague = () => {
+    const [rankings, setRankings] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        fetch('/api/travel/ranking')
+            .then(res => res.json())
+            .then(data => {
+                setRankings(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
+
+    if (loading) return null;
+
+    return (
+        <section className="mt-8 px-6">
+            <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-bold text-gray-900">🏆 실시간 여행 리그</h2>
+                <div className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                    LIVE
+                </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-4 -mt-2">이번 주 반려견 가족들이 가장 많이 검색한 지역은?</p>
+
+            <div className="bg-white rounded-[24px] p-5 shadow-sm border border-gray-100">
+                {rankings.map((item, idx) => (
+                    <div
+                        key={item.rank}
+                        onClick={() => router.push(`/travel/map?region=${item.region}&keyword=${item.keywords[0]}`)}
+                        className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg px-2"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm
+                                ${idx === 0 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-200' : ''}
+                                ${idx === 1 ? 'bg-gray-100 text-gray-600 ring-2 ring-gray-200' : ''}
+                                ${idx === 2 ? 'bg-orange-100 text-orange-700 ring-2 ring-orange-200' : ''}
+                                ${idx > 2 ? 'bg-white text-gray-400 border border-gray-100' : ''}
+                            `}>
+                                {item.rank}
+                            </div>
+                            <div>
+                                <div className="font-bold text-gray-800">{item.region}</div>
+                                <div className="text-xs text-gray-400 mt-0.5 max-w-[150px] truncate">
+                                    {item.keywords.slice(0, 2).join(', ')}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                            {idx === 0 && <span className="text-[10px] text-red-500 font-bold">🔥 인기 급상승</span>}
+                            <div className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                                {item.ratio}%
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
+
 export default function TravelLanding() {
     const router = useRouter();
 
@@ -52,6 +119,23 @@ export default function TravelLanding() {
     const [dogs, setDogs] = useState('1');
     const [region, setRegion] = useState('');
     const [conditions, setConditions] = useState('');
+
+    const KOREAN_REGIONS = [
+        '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
+        '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
+        '수원', '성남', '고양', '용인', '부천', '안산', '안양', '남양주', '화성',
+        '평택', '의정부', '시흥', '파주', '김포', '광명', '군포', '오산',
+        '양주', '이천', '구리', '안성', '포천', '의왕', '하남', '여주', '양평',
+        '춘천', '원주', '강릉', '동해', '태백', '속초', '삼척',
+        '청주', '충주', '제천',
+        '천안', '공주', '보령', '아산', '서산', '논산', '계룡', '당진',
+        '전주', '군산', '익산', '정읍', '남원', '김제',
+        '목포', '여수', '순천', '나주', '광양',
+        '포항', '경주', '김천', '안동', '구미', '영주', '영천', '상주', '문경', '경산',
+        '창원', '진주', '통영', '사천', '김해', '밀양', '거제', '양산',
+        '제주시', '서귀포',
+        '가평', '양양', '평창', '정선'
+    ];
 
     const PRESET_KEYWORDS = [
         { label: '#넓은잔디마당', value: '넓은 잔디마당이 있는 곳' },
@@ -70,7 +154,7 @@ export default function TravelLanding() {
 
     const toggleKeyword = (val: string) => {
         const currentCount = PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length;
-        
+
         if (conditions.includes(val)) {
             setConditions(conditions.replace(val, '').replace('  ', ' ').trim());
         } else {
@@ -78,6 +162,11 @@ export default function TravelLanding() {
             setConditions((conditions + ' ' + val).trim());
         }
     };
+
+    // Filter regions based on input
+    const filteredRegions = region
+        ? KOREAN_REGIONS.filter(r => r.includes(region))
+        : KOREAN_REGIONS.slice(0, 12); // Show top 12 when empty
 
     const [trendingPlaces, setTrendingPlaces] = useState<Place[]>([]);
     const [isTrendingLoading, setIsTrendingLoading] = useState(true);
@@ -211,20 +300,40 @@ export default function TravelLanding() {
                             </div>
                             <AnimatePresence>
                                 {showRegionPopover && (
-                                    <>
+                                    <motion.div
+                                        key="region-popover-container"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                    >
                                         <div className="fixed inset-0 z-40" onClick={() => setShowRegionPopover(false)} />
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-4 left-0 w-full md:w-[400px] z-50 bg-white shadow-xl rounded-3xl p-6 text-left">
-                                            <h5 className="text-xs font-bold text-gray-400 uppercase mb-4">추천 여행지</h5>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {trendingPlaces.slice(0, 6).map((item) => (
-                                                    <button key={item.id} onClick={(e) => { e.stopPropagation(); setRegion(item.address?.split(' ')[0] || item.title); setShowRegionPopover(false); }} className="flex flex-col items-start p-3 rounded-2xl bg-gray-50 hover:bg-pink-50 transition-colors text-left">
-                                                        <span className="font-bold text-sm text-gray-800">{item.address?.split(' ')[0] || item.title}</span>
-                                                        <span className="text-[10px] text-gray-400">{item.category}</span>
-                                                    </button>
-                                                ))}
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-4 left-0 w-full md:w-[400px] z-50 bg-white shadow-xl rounded-3xl p-6 text-left max-h-[400px] overflow-y-auto">
+                                            <h5 className="text-xs font-bold text-gray-400 uppercase mb-4">
+                                                {region ? `"${region}" 검색 결과` : '인기 여행지'}
+                                            </h5>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {filteredRegions.length > 0 ? (
+                                                    filteredRegions.map((regionName) => (
+                                                        <button
+                                                            key={regionName}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRegion(regionName);
+                                                                setShowRegionPopover(false);
+                                                            }}
+                                                            className="flex items-center justify-center p-3 rounded-2xl bg-gray-50 hover:bg-pink-50 transition-colors text-center"
+                                                        >
+                                                            <span className="font-bold text-sm text-gray-800">{regionName}</span>
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <div className="col-span-3 text-center py-6 text-gray-400 text-sm">
+                                                        검색 결과가 없습니다
+                                                    </div>
+                                                )}
                                             </div>
                                         </motion.div>
-                                    </>
+                                    </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
@@ -238,7 +347,12 @@ export default function TravelLanding() {
                                 </div>
                                 <AnimatePresence>
                                     {showCalendar && (
-                                        <>
+                                        <motion.div
+                                            key="calendar-popover-container"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                        >
                                             <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowCalendar(false); }} />
                                             <motion.div
                                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -321,7 +435,7 @@ export default function TravelLanding() {
                                                     </button>
                                                 </div>
                                             </motion.div>
-                                        </>
+                                        </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
@@ -333,7 +447,12 @@ export default function TravelLanding() {
                                 </div>
                                 <AnimatePresence>
                                     {showGuestPopover && (
-                                        <>
+                                        <motion.div
+                                            key="guest-popover-container"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                        >
                                             <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowGuestPopover(false); }} />
                                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute top-full mt-2 left-0 w-full md:w-[320px] z-50 bg-white shadow-2xl rounded-3xl p-6 border border-gray-100 text-left">
                                                 <h5 className="text-xs font-bold text-gray-400 uppercase mb-4">인원 및 반려견</h5>
@@ -374,7 +493,7 @@ export default function TravelLanding() {
                                                     <button onClick={(e) => { e.stopPropagation(); setShowGuestPopover(false); }} className="w-full py-3 bg-pink-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-pink-100">선택 완료</button>
                                                 </div>
                                             </motion.div>
-                                        </>
+                                        </motion.div>
                                     )}
                                 </AnimatePresence>
                             </div>
@@ -401,9 +520,8 @@ export default function TravelLanding() {
                                         }}
                                     />
                                     <div className="absolute right-0 bottom-[-12px] z-30">
-                                        <span className={`text-[9px] font-black transition-colors ${
-                                            conditions.length >= 60 ? 'text-red-500' : 'text-gray-300'
-                                        }`}>
+                                        <span className={`text-[9px] font-black transition-colors ${conditions.length >= 60 ? 'text-red-500' : 'text-gray-300'
+                                            }`}>
                                             {conditions.length} / 60
                                         </span>
                                     </div>
@@ -438,38 +556,34 @@ export default function TravelLanding() {
                                 <div className="flex items-center gap-2 px-2">
                                     <div className="flex items-center bg-white/20 backdrop-blur-md rounded-xl px-3 py-1.5 gap-2 border border-white/10">
                                         <span className="text-[11px] font-black text-white uppercase tracking-widest border-r border-white/20 pr-2">추천 키워드</span>
-                                        <span className={`text-[11px] font-black transition-colors ${
-                                            PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length >= 3 
-                                            ? 'text-pink-300' 
+                                        <span className={`text-[11px] font-black transition-colors ${PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length >= 3
+                                            ? 'text-pink-300'
                                             : 'text-white/80'
-                                        }`}>
+                                            }`}>
                                             {PRESET_KEYWORDS.filter(kw => conditions.includes(kw.value)).length} / 3 선택
                                         </span>
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3 px-1 py-1 w-full">
                                     {PRESET_KEYWORDS.map((kw, i) => {
-                                    const rotations = ['rotate-1', '-rotate-1', 'rotate-2', '-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-2'];
-                                    const offsets = ['translate-y-0', 'translate-y-1', '-translate-y-1', 'translate-y-0.5', '-translate-y-0.5', 'translate-y-1', '-translate-y-1', 'translate-y-0'];
-                                    
-                                    return (
-                                        <button
-                                            key={kw.value}
-                                            onClick={() => toggleKeyword(kw.value)}
-                                            className={`flex-grow md:flex-grow-0 px-4 py-2.5 rounded-[18px] text-[13px] font-black transition-all border shadow-sm hover:shadow-md active:scale-95 ${
-                                                rotations[i % rotations.length]
-                                            } ${
-                                                offsets[i % offsets.length]
-                                            } ${
-                                                conditions.includes(kw.value)
-                                                    ? 'bg-[#ee2b6c] text-white border-[#ee2b6c] shadow-pink-200'
-                                                    : 'bg-white text-[#1b0d12] border-white hover:bg-[#fff5f8] hover:text-[#ee2b6c] hover:border-pink-100'
-                                            }`}
-                                        >
-                                            {kw.label}
-                                        </button>
-                                    );
-                                })}
+                                        const rotations = ['rotate-1', '-rotate-1', 'rotate-2', '-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-2'];
+                                        const offsets = ['translate-y-0', 'translate-y-1', '-translate-y-1', 'translate-y-0.5', '-translate-y-0.5', 'translate-y-1', '-translate-y-1', 'translate-y-0'];
+
+                                        return (
+                                            <button
+                                                key={kw.value}
+                                                onClick={() => toggleKeyword(kw.value)}
+                                                className={`flex-grow md:flex-grow-0 px-4 py-2.5 rounded-[18px] text-[13px] font-black transition-all border shadow-sm hover:shadow-md active:scale-95 ${rotations[i % rotations.length]
+                                                    } ${offsets[i % offsets.length]
+                                                    } ${conditions.includes(kw.value)
+                                                        ? 'bg-[#ee2b6c] text-white border-[#ee2b6c] shadow-pink-200'
+                                                        : 'bg-white text-[#1b0d12] border-white hover:bg-[#fff5f8] hover:text-[#ee2b6c] hover:border-pink-100'
+                                                    }`}
+                                            >
+                                                {kw.label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
@@ -482,6 +596,8 @@ export default function TravelLanding() {
                 </div>
             </section>
 
+
+
             <section className="mt-12 container mx-auto px-4 max-w-7xl">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-2xl font-bold font-outfit">요즘 뜨는 여행지</h3>
@@ -491,12 +607,16 @@ export default function TravelLanding() {
                     <div ref={trendingScrollRef} onScroll={() => checkScroll('trending')} className="flex overflow-x-hidden gap-6 pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth">
                         {isTrendingLoading ? [1, 2, 3, 4].map(i => <div key={i} className="w-[260px] flex-shrink-0 h-[320px] bg-gray-100 rounded-[28px] animate-pulse" />) :
                             trendingPlaces.map((item, idx) => (
-                                <motion.div key={idx} onClick={() => router.push(`/travel/map?region=${item.address?.split(' ')[0] || item.title}&placeId=${item.id}`)} className="w-[260px] flex-shrink-0 h-[320px] rounded-[28px] overflow-hidden relative group cursor-pointer shadow-lg snap-start">
+                                <motion.div key={item.id || idx} onClick={() => router.push(`/travel/map?region=${item.address?.split(' ')[0] || item.title}&placeId=${item.id}`)} className="w-[260px] flex-shrink-0 h-[320px] rounded-[28px] overflow-hidden relative group cursor-pointer shadow-lg snap-start">
                                     <Image
-                                        src={item.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b'}
+                                        src={item.imageUrl || '/images/place_placeholder.png'}
                                         alt={item.title}
                                         fill
                                         className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = '/images/place_placeholder.png';
+                                        }}
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
                                     <div className="absolute bottom-6 left-6 right-6 text-white">
@@ -510,8 +630,8 @@ export default function TravelLanding() {
                             ))}
                     </div>
                     <AnimatePresence>
-                        {canScrollLeft && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => scrollTrending('left')} className="absolute top-1/2 -translate-y-1/2 -left-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronLeft size={24} /></motion.button>}
-                        {canScrollRight && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => scrollTrending('right')} className="absolute top-1/2 -translate-y-1/2 -right-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronRight size={24} /></motion.button>}
+                        {canScrollLeft && <motion.button key="trending-left" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => scrollTrending('left')} className="absolute top-1/2 -translate-y-1/2 -left-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronLeft size={24} /></motion.button>}
+                        {canScrollRight && <motion.button key="trending-right" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => scrollTrending('right')} className="absolute top-1/2 -translate-y-1/2 -right-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronRight size={24} /></motion.button>}
                     </AnimatePresence>
                 </div>
             </section>
@@ -534,17 +654,17 @@ export default function TravelLanding() {
                         <div ref={el => { sectionRefs.current[section.id] = el }} onScroll={() => checkScroll(section.id)} className="flex overflow-x-hidden gap-6 pb-6 snap-x snap-mandatory scrollbar-hide scroll-smooth">
                             {isPicksLoading ? [1, 2, 3, 4, 5].map(i => <div key={i} className={`${section.layout === 'wide' ? 'w-[450px]' : 'w-[300px]'} flex-shrink-0 h-72 bg-gray-100 rounded-[32px] animate-pulse`} />) :
                                 dodamPicks.find(cat => cat.id === section.id)?.items.slice(0, 10).map((item: Place, idx: number) => (
-                                    <motion.div key={idx} whileHover={{ y: -10 }} className={`${section.layout === 'wide' ? 'w-[450px]' : 'w-[300px]'} flex-shrink-0 flex flex-col snap-start cursor-pointer`} onClick={() => router.push(`/travel/map?region=${item.address?.split(' ')[0] || item.title}&placeId=${item.id}`)}>
+                                    <motion.div key={item.id || idx} whileHover={{ y: -10 }} className={`${section.layout === 'wide' ? 'w-[450px]' : 'w-[300px]'} flex-shrink-0 flex flex-col snap-start cursor-pointer`} onClick={() => router.push(`/travel/map?region=${item.address?.split(' ')[0] || item.title}&placeId=${item.id}`)}>
                                         <div className="relative h-72 rounded-[32px] overflow-hidden shadow-xl">
                                             <Image
-                                                src={item.imageUrl || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b'}
+                                                src={item.imageUrl || '/images/place_placeholder.png'}
                                                 alt={item.title}
                                                 fill
                                                 className="object-cover group-hover:scale-110 transition-transform duration-1000"
                                                 sizes="(max-width: 768px) 100vw, 300px"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
-                                                    target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b';
+                                                    target.src = '/images/place_placeholder.png';
                                                 }}
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
@@ -565,8 +685,8 @@ export default function TravelLanding() {
                                 ))}
                         </div>
                         <AnimatePresence>
-                            {sectionScrollState[section.id]?.left && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => handleScrollAction(section.id, 'left')} className="absolute top-1/2 -translate-y-1/2 -left-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronLeft size={24} /></motion.button>}
-                            {sectionScrollState[section.id]?.right !== false && <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => handleScrollAction(section.id, 'right')} className="absolute top-1/2 -translate-y-1/2 -right-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronRight size={24} /></motion.button>}
+                            {sectionScrollState[section.id]?.left && <motion.button key={`${section.id}-left`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => handleScrollAction(section.id, 'left')} className="absolute top-1/2 -translate-y-1/2 -left-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronLeft size={24} /></motion.button>}
+                            {sectionScrollState[section.id]?.right !== false && <motion.button key={`${section.id}-right`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => handleScrollAction(section.id, 'right')} className="absolute top-1/2 -translate-y-1/2 -right-5 z-20 w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-gray-700"><ChevronRight size={24} /></motion.button>}
                         </AnimatePresence>
                     </div>
                 </section>

@@ -54,8 +54,12 @@ export async function mirrorExternalImage(url: string): Promise<string> {
             return `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${filePath}`;
         }
 
-        // 3. Fetch image
-        const response = await fetch(url);
+        // 3. Fetch image with Browser User-Agent to avoid 403
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+        });
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
 
         const inputBuffer = Buffer.from(await response.arrayBuffer());

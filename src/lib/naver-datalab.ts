@@ -92,7 +92,7 @@ export async function getNaverTrendingKeywords(): Promise<string[]> {
     try {
         const today = new Date();
         const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-        
+
         const body = {
             startDate: thirtyDaysAgo.toISOString().split('T')[0],
             endDate: today.toISOString().split('T')[0],
@@ -113,7 +113,7 @@ export async function getNaverTrendingKeywords(): Promise<string[]> {
         if (!response.ok) throw new Error(`DataLab API failed: ${response.status}`);
 
         const data: DataLabResponse = await response.json();
-        
+
         // 각 그룹의 최신 데이터(ratio)를 기준으로 정렬하여 가장 인기 있는 키워드 추출
         const sortedResults = data.results.sort((a, b) => {
             const aLast = a.data[a.data.length - 1]?.ratio || 0;
@@ -128,6 +128,157 @@ export async function getNaverTrendingKeywords(): Promise<string[]> {
     } catch (error) {
         console.error("Naver DataLab Error:", error);
         return FALLBACK_KEYWORDS;
+    }
+}
+
+// [NEW] Regional & Seasonal Trend Logic
+
+const REGION_GROUPS = [
+    { groupName: "강릉/속초", keywords: ["강릉 여행", "속초 여행", "양양 서핑", "고성 여행"] },
+    { groupName: "제주도", keywords: ["제주도 여행", "제주 애견동반", "서귀포 여행"] },
+    { groupName: "부산/거제", keywords: ["부산 여행", "해운대", "광안리", "거제도 여행"] },
+    { groupName: "경상도", keywords: ["경주 여행", "포항 여행", "남해 여행"] },
+    { groupName: "전라도", keywords: ["여수 여행", "전주 한옥마을", "담양 죽녹원"] },
+    { groupName: "충청도", keywords: ["태안 여행", "단양 여행", "제천 여행"] },
+    { groupName: "경기도", keywords: ["가평 여행", "양평 여행", "포천 여행"] }
+];
+
+const SEASONAL_GROUPS = [
+    { groupName: "봄꽃여행", keywords: ["벚꽃 명소", "유채꽃 축제", "매화 마을", "봄꽃 축제"] },
+    { groupName: "여름물놀이", keywords: ["해수욕장", "계곡 물놀이", "서핑 강습", "수상레저"] },
+    { groupName: "가을단풍", keywords: ["단풍 명소", "핑크뮬리", "억새 축제", "가을 캠핑"] },
+    { groupName: "겨울눈꽃", keywords: ["눈꽃 산행", "겨울 바다", "얼음 낚시", "온천 여행"] }
+];
+
+export interface RegionRank {
+    region: string;
+    keywords: string[];
+    ratio: number;
+}
+
+export async function getRegionalRanking(): Promise<RegionRank[]> {
+    const clientId = process.env.NAVER_CLIENT_ID;
+    const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) return [
+        { region: "강릉/속초", keywords: ["강릉", "속초"], ratio: 100 },
+        { region: "제주도", keywords: ["제주", "서귀포"], ratio: 80 },
+        { region: "부산", keywords: ["해운대", "광안리"], ratio: 60 }
+    ];
+
+    try {
+        const today = new Date();
+        const weekAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+        const body = {
+            startDate: weekAgo.toISOString().split('T')[0],
+            endDate: today.toISOString().split('T')[0],
+            timeUnit: "date",
+            keywordGroups: REGION_GROUPS
+        };
+
+        const response = await fetch(NAVER_DATALAB_URL, {
+            method: 'POST',
+            headers: {
+                'X-Naver-Client-Id': clientId,
+                'X-Naver-Client-Secret': clientSecret,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) throw new Error(`DataLab Rank API failed: ${response.status}`);
+
+        const data: DataLabResponse = await response.json();
+
+        // Calculate average ratio for last 7 days for each group
+        const rankings = data.results.map(group => {
+            const totalRatio = group.data.reduce((acc, curr) => acc + (curr.ratio || 0), 0);
+            return {
+                region: group.title,
+                keywords: group.keyword,
+                ratio: totalRatio
+            };
+        }).sort((a, b) => b.ratio - a.ratio);
+
+        return rankings.slice(0, 5); // Return Top 5
+
+    } catch (error) {
+        console.error("Regional Ranking Error:", error);
+        return [];
+    }
+}
+
+export async function getSmartSeasonalTheme(): Promise<{ title: string, queries: string[] }> {
+    const clientId = process.env.NAVER_CLIENT_ID;
+    const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+    // Default based on month if API fails
+    const month = new Date().getMonth() + 1;
+    let defaultTheme = { title: "사계절 힐링 여행", queries: ["애견동반 여행"] };
+    if (month >= 3 && month <= 5) defaultTheme = { title: "봄꽃 나들이", queries: ["벚꽃", "유채꽃"] };
+    else if (month >= 6 && month <= 8) defaultTheme = { title: "시원한 물놀이", queries: ["계곡", "바다"] };
+    else if (month >= 9 && month <= 11) defaultTheme = { title: "가을 단풍여행", queries: ["단풍", "핑크뮬리"] };
+    else defaultTheme = { title: "겨울 눈꽃여행", queries: ["눈꽃", "온천"] };
+
+    if (!clientId || !clientSecret) return defaultTheme;
+
+    try {
+        const today = new Date();
+        const twoWeeksAgo = new Date(today.getTime() - (14 * 24 * 60 * 60 * 1000));
+
+        const body = {
+            startDate: twoWeeksAgo.toISOString().split('T')[0],
+            endDate: today.toISOString().split('T')[0],
+            timeUnit: "date",
+            keywordGroups: SEASONAL_GROUPS
+        };
+
+        const response = await fetch(NAVER_DATALAB_URL, {
+            method: 'POST',
+            headers: {
+                'X-Naver-Client-Id': clientId,
+                'X-Naver-Client-Secret': clientSecret,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) return defaultTheme;
+
+        const data: DataLabResponse = await response.json();
+        const winner = data.results.sort((a, b) => {
+            const aVal = a.data.reduce((acc, curr) => acc + curr.ratio, 0);
+            const bVal = b.data.reduce((acc, curr) => acc + curr.ratio, 0);
+            return bVal - aVal;
+        })[0];
+
+        if (!winner) return defaultTheme;
+
+        // Map winner group to our app's theme structure
+        switch (winner.title) {
+            case "봄꽃여행": return {
+                title: '봄바람 살랑이는 꽃놀이 🌸',
+                queries: ["애견동반 벚꽃", "유채꽃 애견동반", "봄꽃 축제 애견", "강아지 피크닉"]
+            };
+            case "여름물놀이": return {
+                title: '시원한 계곡과 바다 🌊',
+                queries: ["애견동반 계곡", "강아지 해수욕장", "애견 수영장 펜션", "반려견 동반 서핑"]
+            };
+            case "가을단풍": return {
+                title: '가을 단풍놀이 산책 🍁',
+                queries: ["애견동반 단풍", "억새밭 애견동반", "가을 캠핑장 애견", "핑크뮬리 애견"]
+            };
+            case "겨울눈꽃": return {
+                title: '따뜻한 감성 겨울여행 ☃️',
+                queries: ["애견동반 겨울바다", "강아지 눈썰매", "애견 글램핑 불멍", "반려견 동반 온천"]
+            };
+            default: return defaultTheme;
+        }
+
+    } catch (error) {
+        console.error("Seasonal Theme Error:", error);
+        return defaultTheme;
     }
 }
 
