@@ -17,7 +17,7 @@ export default function MainFeatures() {
                         className="relative h-[400px] md:h-[500px] rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl shadow-pink-100/50"
                     >
                         <Image
-                            src="/images/styles/streetwear.png"
+                            src="/images/home/style_main.jpg"
                             alt="Styling"
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -41,7 +41,7 @@ export default function MainFeatures() {
                         className="relative h-[400px] md:h-[500px] rounded-[48px] overflow-hidden group cursor-pointer shadow-2xl shadow-blue-100/50"
                     >
                         <Image
-                            src="/dog_travel_forest_1770088705081.png"
+                            src="/images/home/travel_main.png"
                             alt="Travel"
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-110"

@@ -1,19 +1,34 @@
 import { geminiModel } from "@/lib/gemini";
 import { getNaverShoppingTrends } from "@/lib/naver-datalab";
 import { NextRequest, NextResponse } from "next/server";
+import { RecommendationSchema } from "@/lib/validations";
+import listLimiter from "@/lib/rate-limit";
+
+const limiter = listLimiter({ uniqueTokenPerInterval: 500, interval: 60000 });
 
 export async function POST(req: NextRequest) {
-    try {
-        const { image } = await req.json();
-        if (!image) return NextResponse.json({ error: "이미지가 없습니다." }, { status: 400 });
+  const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const { isRateLimited } = limiter.check(10, ip);
 
-        const base64Content = image.includes(",") ? image.split(",")[1] : image;
+  if (isRateLimited) {
+    return NextResponse.json({ error: "Too Many Requests" }, { status: 429 });
+  }
 
-        // [네이버 API 극대화] 실시간 쇼핑 트렌드 데이터 수집
-        const shoppingTrends = await getNaverShoppingTrends();
-        const trendContext = shoppingTrends.join(", ");
+  try {
+    const body = await req.json();
+    const validation = RecommendationSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: "Invalid Input", details: validation.error.format() }, { status: 400 });
+    }
+    const { image } = validation.data;
 
-        const prompt = `
+    const base64Content = image.includes(",") ? image.split(",")[1] : image;
+
+    // [네이버 API 극대화] 실시간 쇼핑 트렌드 데이터 수집
+    const shoppingTrends = await getNaverShoppingTrends();
+    const trendContext = shoppingTrends.join(", ");
+
+    const prompt = `
 당신은 대한민국 최고의 반려견 스타일 전문가입니다. 사진 속 강아지를 분석해 다음 두 가지 작업을 동시에 수행하세요.
 
 ### 작업 1: 화보 컨셉 제안 (스타일 모드용)
@@ -55,35 +70,35 @@ export async function POST(req: NextRequest) {
 }
 `;
 
-        const result = await geminiModel.generateContent({
-            contents: [{
-                role: "user",
-                parts: [
-                    { inlineData: { data: base64Content, mimeType: "image/jpeg" } },
-                    { text: prompt }
-                ]
-            }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                maxOutputTokens: 4000,
-                temperature: 0.4,
-            },
-        });
+    const result = await geminiModel.generateContent({
+      contents: [{
+        role: "user",
+        parts: [
+          { inlineData: { data: base64Content, mimeType: "image/jpeg" } },
+          { text: prompt }
+        ]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 4000,
+        temperature: 0.4,
+      },
+    });
 
-        const response = await result.response;
-        let text = response.text();
-        const startIdx = text.indexOf('{');
-        const endIdx = text.lastIndexOf('}');
-        if (startIdx !== -1 && endIdx !== -1) text = text.substring(startIdx, endIdx + 1);
+    const response = await result.response;
+    let text = response.text();
+    const startIdx = text.indexOf('{');
+    const endIdx = text.lastIndexOf('}');
+    if (startIdx !== -1 && endIdx !== -1) text = text.substring(startIdx, endIdx + 1);
 
-        try {
-            const cleanedText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "").trim();
-            const data = JSON.parse(cleanedText);
-            return NextResponse.json(data);
-        } catch (e: any) {
-            return NextResponse.json({ error: "해석 실패", details: e.message }, { status: 500 });
-        }
-    } catch (error: any) {
-        return NextResponse.json({ error: "API 오류", details: error.message }, { status: 500 });
+    try {
+      const cleanedText = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, "").trim();
+      const data = JSON.parse(cleanedText);
+      return NextResponse.json(data);
+    } catch (e: any) {
+      return NextResponse.json({ error: "해석 실패", details: e.message }, { status: 500 });
     }
+  } catch (error: any) {
+    return NextResponse.json({ error: "API 오류", details: error.message }, { status: 500 });
+  }
 }

@@ -9,6 +9,7 @@ import TravelLanding from "@/components/travel/TravelLanding";
 import TravelMap, { Place } from "@/components/travel/TravelMap";
 import MapContainer from "@/components/travel/MapContainer";
 import TravelDetail from "@/components/travel/TravelDetail";
+import NaverMapScript from "@/components/travel/NaverMapScript";
 
 const MOCK_PLACES: Place[] = [
     { id: 'h1', name: 'Grand InterContinental Seoul', title: 'Grand InterContinental', category: 'Hotel', address: 'Gangnam-gu, Seoul', lat: 37.5096, lng: 127.0602 },
@@ -68,7 +69,7 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
             }
         };
         fetchAndSetPlace();
-    }, [initPlaceId, initRegion]);
+    }, [initPlaceId, initRegion, searchParams]);
 
     // Initial Generation Effect (Only in Map Mode)
     useEffect(() => {
@@ -78,12 +79,12 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
                 people: initPeople,
                 dogs: initDogs,
                 days: initDays,
-                conditions: autoGenerate && initPlaceId 
-                    ? `[ID: ${initPlaceId}] 이 장소를 반드시 포함하여 주변 반려견 동반 코스를 추천해줘.` 
+                conditions: autoGenerate && initPlaceId
+                    ? `[ID: ${initPlaceId}] 이 장소를 반드시 포함하여 주변 반려견 동반 코스를 추천해줘.`
                     : '최적의 코스 추천'
             });
         }
-    }, [isMapMode, initRegion, initPlaceId, autoGenerate]); 
+    }, [isMapMode, initRegion, initPlaceId, autoGenerate, initPeople, initDogs, initDays]);
 
     const handleGenerateCourse = async (criteria: { days: string, people: string, dogs: string, region: string, conditions: string }) => {
         setIsLoading(true);
@@ -120,6 +121,7 @@ export default function TravelUnifiedPage({ params }: { params: Promise<{ slug?:
 
     return (
         <div className="min-h-screen bg-[#fffdfa] relative">
+            <NaverMapScript />
             <AnimatePresence mode="wait">
                 {/* 1. LANDING VIEW */}
                 {!isMapMode && (

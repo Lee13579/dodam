@@ -1,10 +1,26 @@
 import { geminiModel } from "@/lib/gemini";
 import { NextRequest, NextResponse } from "next/server";
+import { StylingNoteSchema } from "@/lib/validations";
+import listLimiter from "@/lib/rate-limit";
+
+const limiter = listLimiter({ uniqueTokenPerInterval: 500, interval: 60000 });
 
 export async function POST(req: NextRequest) {
+    const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const { isRateLimited } = limiter.check(20, ip);
+
+    if (isRateLimited) {
+        return NextResponse.json({ error: "Too Many Requests" }, { status: 429 });
+    }
+
     try {
-        const { prompt, mode, dogName } = await req.json();
-        
+        const body = await req.json();
+        const validation = StylingNoteSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ error: "Invalid Input", details: validation.error.format() }, { status: 400 });
+        }
+        const { prompt, mode, dogName } = validation.data;
+
         const analysisPrompt = `
             You are a luxury fashion editor for dogs named "Dodam".
             Context: ${prompt}

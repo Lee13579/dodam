@@ -1,5 +1,9 @@
 import { geminiImageModel } from "@/lib/gemini";
 import { NextRequest, NextResponse } from "next/server";
+import { GenerationSchema } from "@/lib/validations";
+import listLimiter from "@/lib/rate-limit";
+
+const limiter = listLimiter({ uniqueTokenPerInterval: 500, interval: 60000 });
 
 async function getBase64FromUrl(url: string): Promise<string> {
     const response = await fetch(url);
@@ -8,26 +12,37 @@ async function getBase64FromUrl(url: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+    const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const { isRateLimited } = limiter.check(5, ip); // Stricter limit for generation
+
+    if (isRateLimited) {
+        return NextResponse.json({ error: "Too Many Requests" }, { status: 429 });
+    }
+
     try {
-        const { prompt, image, clothImage, accImage } = await req.json();
-        if (!prompt || !image) return NextResponse.json({ error: "Missing data" }, { status: 400 });
+        const body = await req.json();
+        const validation = GenerationSchema.safeParse(body);
+        if (!validation.success) {
+            return NextResponse.json({ error: "Invalid Input", details: validation.error.format() }, { status: 400 });
+        }
+        const { prompt, image, clothImage, accImage } = validation.data;
 
         const dogBase64 = image.includes(",") ? image.split(",")[1] : image;
-        
+
         // Handle both Base64 and external URLs for items
-        const clothBase64 = clothImage 
-            ? (clothImage.startsWith("http") ? await getBase64FromUrl(clothImage) : (clothImage.includes(",") ? clothImage.split(",")[1] : clothImage)) 
+        const clothBase64 = clothImage
+            ? (clothImage.startsWith("http") ? await getBase64FromUrl(clothImage) : (clothImage.includes(",") ? clothImage.split(",")[1] : clothImage))
             : null;
-        const accBase64 = accImage 
-            ? (accImage.startsWith("http") ? await getBase64FromUrl(accImage) : (accImage.includes(",") ? accImage.split(",")[1] : accImage)) 
+        const accBase64 = accImage
+            ? (accImage.startsWith("http") ? await getBase64FromUrl(accImage) : (accImage.includes(",") ? accImage.split(",")[1] : accImage))
             : null;
-        
+
         const mimeType = "image/jpeg";
 
         const generationTasks = [1, 2].map(async (i) => {
             const isVTO = prompt.includes('[VTO]');
             const cleanPrompt = prompt.replace(/\[VTO\]|\[PICTORIAL\]/g, '').trim();
-            
+
             let instruction = "";
             const parts: any[] = [];
 
@@ -43,7 +58,7 @@ export async function POST(req: NextRequest) {
                     : `Perform a luxury virtual try-on. Precisely dress this dog in: ${cleanPrompt}. 
                        Maintain the dog's exact identity. If background change is allowed, use a stunning matching location. 
                        Professional editorial quality with realistic fabric interaction.`;
-                
+
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });
                 if (clothBase64) parts.push({ inlineData: { data: clothBase64, mimeType } });
@@ -57,7 +72,7 @@ export async function POST(req: NextRequest) {
                    [MOOD] Apply cinematic color grading and soft, dreamy lighting.
                    [PRESERVE] Maintain the dog's exact facial features and breed characteristics.
                    Ultra-realistic, professional commercial quality.`;
-                
+
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });
             }
@@ -73,7 +88,7 @@ export async function POST(req: NextRequest) {
             const response = await result.response;
             const candidate = response.candidates?.[0];
             const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
-            
+
             if (!imagePart?.inlineData) throw new Error(`Image ${i} generation failed`);
             return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
         });

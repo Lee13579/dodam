@@ -16,16 +16,22 @@ export default function Home() {
       <Hero />
 
       {/* Primary Feature Pillars */}
-      <MainFeatures />
+      <section aria-label="Main Features">
+        <MainFeatures />
+      </section>
 
       {/* Travel Teaser */}
-      <TravelTeaser />
+      <section aria-label="Travel Teaser">
+        <TravelTeaser />
+      </section>
 
       {/* Gallery Section */}
-      <GallerySlider />
+      <section aria-label="Gallery">
+        <GallerySlider />
+      </section>
 
       {/* Value Proposition Section */}
-      <section id="about" className="py-24 px-6 bg-white">
+      <section id="about" aria-label="Why Dodam" className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-6xl font-bold mb-6 font-outfit text-[#2d241a] break-keep">왜 <span className="text-pink-500">도담</span>일까요?</h2>

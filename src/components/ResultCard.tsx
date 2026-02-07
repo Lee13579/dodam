@@ -31,7 +31,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                 styleName: currentStyle,
                 noteColor
             });
-            
+
             const link = document.createElement('a');
             link.href = watermarkedBase64;
             link.download = `dodam-${dogName || 'photo'}-${timestamp}.jpg`;
@@ -57,9 +57,9 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                             alt="Original Dog"
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-700"
-                            unoptimized
+                            sizes="(max-width: 768px) 100vw, 33vw"
                         />
-                        
+
                         {/* Internal Note Overlay for Original - Micro Minimal */}
                         <div className="absolute bottom-4 right-4 w-fit transform rotate-[-2deg] transition-transform duration-500 group-hover:rotate-0 pointer-events-none">
                             <div className="bg-[#FFFEF9]/95 backdrop-blur-sm px-3 py-1.5 rounded-sm shadow-md border-l-[3px] border-stone-300 relative overflow-hidden">
@@ -81,7 +81,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center border border-stone-50">
                                     <div className="w-2 h-2 rounded-full shadow-inner" style={{ backgroundColor: noteColor }} />
                                 </div>
-                                
+
                                 <p className="text-[#5d4d3d] text-sm font-bold leading-relaxed break-keep text-center italic">
                                     &quot;{baseAnalysis}&quot;
                                 </p>
@@ -115,7 +115,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                                     alt={`Styled Result ${index + 1}`}
                                     fill
                                     className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
-                                    unoptimized
+                                    sizes="(max-width: 768px) 100vw, 50vw"
                                 />
 
                                 {/* Internal Style Note - Emotional Tag Style */}
@@ -132,7 +132,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                                                 <span className="text-[#8B7355] opacity-60 shrink-0">스타일 :</span>
                                                 <span className="break-keep">{styleName || '추천 스타일'}</span>
                                             </div>
-                                            
+
                                             <div className="pt-1.5 mt-1 border-t border-dashed border-stone-200">
                                                 <div className="flex justify-between items-baseline gap-2">
                                                     <span className="font-black text-[9px] tracking-tighter uppercase" style={{ color: noteColor }}>도담</span>
@@ -174,7 +174,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                     className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl shadow-stone-100 border border-stone-100 relative overflow-hidden"
                 >
                     <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-stone-50 rounded-full -z-10 opacity-60" />
-                    
+
                     <div className="space-y-12">
                         {/* Section 1: Emotional Styling Recommendation */}
                         <div className="relative text-center">
@@ -183,7 +183,7 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                                 Editor&apos;s Choice
                                 <span className="w-12 h-[1px] bg-[#8b7355]/30"></span>
                             </div>
-                            
+
                             <div className="relative inline-block max-w-4xl">
                                 <span className="absolute -top-10 -left-12 text-9xl text-stone-100 font-serif serif pointer-events-none select-none leading-none">&ldquo;</span>
                                 <p className="text-[#2D241A] text-2xl md:text-4xl font-black leading-[1.6] break-keep relative z-10 tracking-tight italic px-4">

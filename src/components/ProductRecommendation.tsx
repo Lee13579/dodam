@@ -44,11 +44,10 @@ export default function ProductRecommendation({ products, onLoadMore, loadingMor
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all border ${
-                                activeTab === tab.id
+                            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all border ${activeTab === tab.id
                                     ? "bg-pink-500 text-white border-pink-500 shadow-lg scale-105"
                                     : "bg-white text-stone-500 border-stone-200 hover:border-pink-200 hover:text-pink-400"
-                            }`}
+                                }`}
                         >
                             {tab.label}
                         </button>
@@ -66,9 +65,9 @@ export default function ProductRecommendation({ products, onLoadMore, loadingMor
                             transition={{ delay: (idx % 4) * 0.05 }}
                             className="group flex flex-col"
                         >
-                            <a 
-                                href={product.url} 
-                                target="_blank" 
+                            <a
+                                href={product.url}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="relative aspect-[3/4] rounded-[40px] overflow-hidden bg-stone-100 mb-6 block border-4 border-white shadow-lg hover:shadow-2xl transition-all duration-500"
                             >
@@ -77,7 +76,7 @@ export default function ProductRecommendation({ products, onLoadMore, loadingMor
                                     alt={product.name}
                                     fill
                                     className="object-cover group-hover:scale-110 transition-transform duration-700"
-                                    unoptimized
+                                    sizes="(max-width: 768px) 50vw, 25vw"
                                 />
                                 {/* Hover Overlay */}
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -120,7 +119,7 @@ export default function ProductRecommendation({ products, onLoadMore, loadingMor
                         )}
                     </button>
                 )}
-                
+
                 <p className="text-stone-400 text-[10px] mt-8 flex items-center justify-center gap-2 opacity-60">
                     <Sparkles size={10} />
                     아이의 스타일과 가장 잘 어울리는 아이템을 실시간으로 큐레이션합니다.
