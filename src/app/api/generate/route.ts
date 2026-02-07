@@ -78,31 +78,8 @@ export async function POST(req: NextRequest) {
             return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
         });
 
-        // Parallel Task: Generate Editor's Note (Only for VTO to fix template text issue)
-        let editorNote = null;
-        if (prompt.includes('[VTO]')) {
-            const analysisPrompt = `
-                You are a luxury fashion editor for dogs.
-                The user has selected specific items to dress their dog.
-                
-                User Request Context: ${prompt.replace(/\[VTO\]|\[PICTORIAL\]/g, '').trim()}
-                
-                Task: Write a short, elegant 'Editor's Choice' note (in Korean) explaining why this specific styling works for this dog.
-                - Tone: Professional, warm, and sophisticated (like a magazine editor).
-                - Content: Focus on the harmony between the dog and the selected items. 
-                - Length: 2-3 sentences max.
-                - Output: Pure Korean text only. No intro/outro.
-            `;
-            
-            const noteResult = await geminiModel.generateContent({
-                contents: [{ role: "user", parts: [{ text: analysisPrompt }] }],
-                generationConfig: { temperature: 0.7, maxOutputTokens: 200 }
-            });
-            editorNote = noteResult.response.text();
-        }
-
         const urls = await Promise.all(generationTasks);
-        return NextResponse.json({ urls, analysis: editorNote });
+        return NextResponse.json({ urls });
     } catch (error: any) {
         return NextResponse.json({ error: "Generation failed", details: error.message }, { status: 500 });
     }

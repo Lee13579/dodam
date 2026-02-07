@@ -24,7 +24,8 @@ export interface Product {
     price: number;
     image: string;
     url: string;
-    category: "Grooming" | "Accessory" | "Shampoo" | "Clothing";
+    category: "Grooming" | "Accessory" | "Shampoo" | "Clothing" | "Curation";
+    mallName?: string;
 }
 
 export interface AiConcept {

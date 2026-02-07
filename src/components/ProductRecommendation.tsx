@@ -12,18 +12,51 @@ interface ProductRecommendationProps {
 }
 
 export default function ProductRecommendation({ products, onLoadMore, loadingMore }: ProductRecommendationProps) {
+    const [activeTab, setActiveTab] = React.useState<'ALL' | 'CLOTH' | 'ACC'>('ALL');
+
     if (products.length === 0) return null;
+
+    // Filter products based on active tab
+    // Note: Since 'category' in Product type is loose, we map it roughly.
+    // Ideally, the API should return precise categories.
+    const filteredProducts = products.filter(p => {
+        if (activeTab === 'ALL') return true;
+        if (activeTab === 'CLOTH') return p.category === 'Clothing' || p.category === 'Curation'; // 'Curation' often includes clothes
+        if (activeTab === 'ACC') return p.category === 'Accessory';
+        return true;
+    });
 
     return (
         <section className="py-12 space-y-12">
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-8">
                 <h2 className="text-3xl md:text-4xl font-black text-[#2D241A] font-outfit tracking-tight">
                     스타일을 완성할 <span className="text-pink-500">추천 아이템</span>
                 </h2>
+
+                {/* Category Tabs */}
+                <div className="flex justify-center gap-2">
+                    {[
+                        { id: 'ALL', label: '전체 보기' },
+                        { id: 'CLOTH', label: '의류' },
+                        { id: 'ACC', label: '소품/액세서리' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all border ${
+                                activeTab === tab.id
+                                    ? "bg-pink-500 text-white border-pink-500 shadow-lg scale-105"
+                                    : "bg-white text-stone-500 border-stone-200 hover:border-pink-200 hover:text-pink-400"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
-                {products.map((product, idx) => {
+                {filteredProducts.map((product, idx) => {
                     return (
                         <motion.div
                             key={`${product.id}-${idx}`}

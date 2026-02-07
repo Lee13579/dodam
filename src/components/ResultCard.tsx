@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { Download, Share2, Stars, Sparkles } from "lucide-react";
+import { Download, Share2, Stars, Sparkles, RefreshCw, ArrowLeft, Loader2 } from "lucide-react";
 import { getStyleColor } from '@/lib/utils';
 import { applyNoteWatermark } from '@/lib/watermark';
 
@@ -16,10 +17,13 @@ interface ResultCardProps {
     dogName?: string;
     styleName?: string;
     keywords?: string[];
+    personalColor?: string;
+    onRetry?: () => void;
+    retryCount?: number;
 }
 
-export default function ResultCard({ originalImage, styledImages, analysis, baseAnalysis, description, shoppingTip, dogName, styleName, keywords }: ResultCardProps) {
-    const noteColor = getStyleColor(styleName || '도담 스타일');
+export default function ResultCard({ originalImage, styledImages, analysis, baseAnalysis, description, shoppingTip, dogName, styleName, keywords, personalColor, onRetry, retryCount = 0 }: ResultCardProps) {
+    const noteColor = personalColor || getStyleColor(styleName || '도담 스타일');
 
     const handleDownload = async (imgUrl: string, index: number) => {
         try {
@@ -73,10 +77,10 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                             transition={{ delay: 0.4 }}
                             className="mt-8 relative px-2"
                         >
-                            <div className="relative bg-[#FFFEF9] p-6 rounded-sm shadow-xl border-l-[4px] border-pink-200 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+                            <div className="relative bg-[#FFFEF9] p-6 rounded-sm shadow-xl border-l-[4px] transform rotate-1 hover:rotate-0 transition-transform duration-500" style={{ borderLeftColor: noteColor }}>
                                 {/* Pin Decoration */}
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center border border-stone-50">
-                                    <div className="w-2 h-2 bg-pink-400 rounded-full shadow-inner" />
+                                    <div className="w-2 h-2 rounded-full shadow-inner" style={{ backgroundColor: noteColor }} />
                                 </div>
                                 
                                 <p className="text-[#5d4d3d] text-sm font-bold leading-relaxed break-keep text-center italic">
@@ -89,6 +93,15 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
 
                 {/* Styled Results - Main Focus with Notes */}
                 <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Placeholder for loading state */}
+                    {styledImages.length === 0 && [0, 1].map((_, idx) => (
+                        <div key={`skeleton-${idx}`} className="relative aspect-[4/5] rounded-[48px] bg-stone-100 border-4 border-white shadow-xl flex flex-col items-center justify-center overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-stone-50 to-stone-100 animate-pulse" />
+                            <Loader2 className="w-10 h-10 text-pink-200 animate-spin relative z-10" />
+                            <p className="text-stone-400 font-bold text-sm mt-4 animate-pulse relative z-10">아이의 화보를 그리는 중...</p>
+                        </div>
+                    ))}
+
                     {styledImages.map((img, index) => (
                         <motion.div
                             key={index}
@@ -98,10 +111,12 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                             className="relative group h-full"
                         >
                             <div className="relative aspect-[4/5] rounded-[48px] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] group-hover:shadow-[0_48px_80px_-16px_rgba(0,0,0,0.2)] transition-all duration-500 bg-stone-100 border-4 border-white">
-                                <img
+                                <Image
                                     src={img}
                                     alt={`Styled Result ${index + 1}`}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
+                                    fill
+                                    className="object-cover group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
+                                    unoptimized
                                 />
 
                                 {/* Internal Style Note - Emotional Tag Style */}
@@ -179,6 +194,22 @@ export default function ResultCard({ originalImage, styledImages, analysis, base
                             </div>
                         </div>
                     </div>
+
+                    {/* Action Footer: Retry Button */}
+                    {onRetry && retryCount !== undefined && (
+                        <div className="flex justify-center pt-8">
+                            <button
+                                onClick={onRetry}
+                                disabled={retryCount >= 1}
+                                className="group flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-stone-200 text-stone-500 hover:text-pink-500 hover:border-pink-200 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <RefreshCw size={16} className={`group-hover:rotate-180 transition-transform duration-500 ${retryCount >= 1 ? '' : ''}`} />
+                                <span className="font-bold text-sm">
+                                    {retryCount >= 1 ? "재시도 완료 (1/1)" : "결과가 마음에 안 드나요? 다시 해보기 (1회 무료)"}
+                                </span>
+                            </button>
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </div>

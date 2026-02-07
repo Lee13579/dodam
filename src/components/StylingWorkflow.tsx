@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import UploadZone from "./UploadZone";
 import ResultCard from "./ResultCard";
 import ProductRecommendation from "./ProductRecommendation";
@@ -25,6 +25,7 @@ interface StylingResults {
     dogName?: string;
     shoppingTip?: string;
     keywords?: string[];
+    personalColor?: string;
 }
 
 const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
@@ -67,6 +68,26 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     const [keepBackground, setKeepBackground] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingStep, setLoadingStep] = useState("");
+    const [retryCount, setRetryCount] = useState(0); // Track retries
+    const loadingMessages = [
+        "아이의 모색과 체형을 분석하고 있어요...",
+        "가장 잘 어울리는 컬러를 찾는 중이에요...",
+        "트렌디한 아이템을 매칭하고 있어요...",
+        "에디터가 추천사를 작성하고 있어요...",
+        "멋진 화보를 완성하는 중입니다..."
+    ];
+
+    // Message Rotation Effect
+    useEffect(() => {
+        if (!loading) return;
+        let idx = 0;
+        const interval = setInterval(() => {
+            idx = (idx + 1) % loadingMessages.length;
+            setLoadingStep(loadingMessages[idx]);
+        }, 2500); // Change message every 2.5s
+        return () => clearInterval(interval);
+    }, [loading]);
+
     const [dogName, setDogName] = useState("");
     const [customPrompt, setCustomPrompt] = useState("");
     const [userRequest, setUserRequest] = useState("");
@@ -74,6 +95,7 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     const [results, setResults] = useState<StylingResults | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [recommendations, setRecommendations] = useState<AiConcept[]>([]);
+    const [personalColor, setPersonalColor] = useState<string>("#EC4899"); // Default pink
     const [suggestedClothes, setSuggestedClothes] = useState<SuggestedItem[]>([]);
     const [suggestedAccessories, setSuggestedAccessories] = useState<SuggestedItem[]>([]);
     
@@ -130,6 +152,16 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
         setUserRequest("");
         setKeepBackground(false);
         setStep(1);
+        setRetryCount(0);
+    };
+
+    const handleRetry = async () => {
+        if (retryCount >= 1) {
+            alert("재시도는 1회만 가능해요. 새로운 스타일을 시도해보세요!");
+            return;
+        }
+        setRetryCount(prev => prev + 1);
+        await handleStartAnalysis();
     };
 
     const handleLoadMoreProducts = async () => {
@@ -173,6 +205,7 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
             const data = await res.json();
             if (res.ok && data.concepts?.length > 0) {
                 setRecommendations(data.concepts);
+                if (data.personalColor) setPersonalColor(data.personalColor);
                 setLoadingStep("어울리는 실제 아이템을 매칭하는 중...");
                 const clothesWithReal = await Promise.all((data.suggestedClothes || []).map(fetchRealProductForItem));
                 const accWithReal = await Promise.all((data.suggestedAccessories || []).map(fetchRealProductForItem));
@@ -195,12 +228,12 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
         try {
             const base64 = await resizeImage(file);
             let generationPrompt = "";
-            let analysis = "";
             let keywords: string[] = [];
             let currentShoppingTip = "";
             
             const itemImages: { cloth?: string, acc?: string } = {};
 
+            // 1. Build Prompt Logic (Same as before)
             if (selectedCloth || selectedAcc) {
                 const items = [];
                 if (selectedCloth) {
@@ -209,13 +242,10 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                         items.push("the clothing in the second image");
                     } else {
                         const name = selectedCloth.realProduct?.name || selectedCloth.name;
-                        // Pass the curated product image to AI for exact matching
                         if (selectedCloth.realProduct?.image) {
                             itemImages.cloth = selectedCloth.realProduct.image;
                             items.push(`the exact ${name} shown in the second image`);
-                        } else {
-                            items.push(name);
-                        }
+                        } else items.push(name);
                         keywords.push(selectedCloth.searchKeyword || selectedCloth.name);
                     }
                 }
@@ -225,91 +255,82 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                         items.push(`the accessory in the ${itemImages.cloth ? 'third' : 'second'} image`);
                     } else {
                         const name = selectedAcc.realProduct?.name || selectedAcc.name;
-                        // Pass the curated accessory image to AI for exact matching
                         if (selectedAcc.realProduct?.image) {
                             itemImages.acc = selectedAcc.realProduct.image;
                             items.push(`the exact ${name} shown in the ${itemImages.cloth ? 'third' : 'second'} image`);
-                        } else {
-                            items.push(name);
-                        }
+                        } else items.push(name);
                         keywords.push(selectedAcc.searchKeyword || selectedAcc.name);
                     }
                 }
-
                 generationPrompt = `[VTO] precisely dress the dog in ${items.join(" and ")}`;
-                if (userRequest.trim()) {
-                    generationPrompt += `. Additionally, please follow this user request: ${userRequest}`;
-                }
-                analysis = `${items.join(", ")}을(를) 활용한 완벽한 셋업 스타일링입니다. 아이의 개성을 최대한 살려 피팅해 드려요.`;
                 currentShoppingTip = "의류와 액세서리의 조화가 아주 훌륭해요. 실루엣과 디테일을 꼼꼼하게 표현합니다.";
             } else {
-                // PICTORIAL MODE LOGIC
                 if (style === 'custom') {
-                    // Use user's custom text
-                    if (keepBackground) generationPrompt = `[VTO] ${customPrompt}`;
-                    else generationPrompt = `[PICTORIAL] ${customPrompt}`;
-                    analysis = `보호자님이 직접 그려주신 "${customPrompt}" 스타일로 변신을 시작합니다.`;
+                    generationPrompt = keepBackground ? `[VTO] ${customPrompt}` : `[PICTORIAL] ${customPrompt}`;
                     currentShoppingTip = "커스텀 스타일링은 아이의 개성을 가장 잘 드러낼 수 있어요.";
                 } else {
                     const selectedAiConcept = recommendations.find(c => c.id === style);
-                    if (mode === 'vto' || keepBackground) generationPrompt = `[VTO] ${selectedAiConcept.vtoOutfitEnglish}`;
-                    else generationPrompt = `[PICTORIAL] ${selectedAiConcept.customPrompt}`;
-                    analysis = selectedAiConcept.koreanAnalysis;
-                    keywords = selectedAiConcept.searchKeywords || [];
-                    currentShoppingTip = selectedAiConcept.shoppingTip;
-                }
-
-                // Always append extra user requests if present
-                if (userRequest.trim()) {
-                    generationPrompt += `. Additionally, carefully follow this request: ${userRequest}`;
+                    generationPrompt = (mode === 'vto' || keepBackground) ? `[VTO] ${selectedAiConcept?.vtoOutfitEnglish}` : `[PICTORIAL] ${selectedAiConcept?.customPrompt}`;
+                    keywords = selectedAiConcept?.searchKeywords || [];
+                    currentShoppingTip = selectedAiConcept?.shoppingTip || "";
                 }
             }
 
-            setLoadingStep("아이의 새로운 모습을 그리는 중...");
-            const generateRes = await fetch("/api/generate", {
+            if (userRequest.trim()) generationPrompt += `. Additionally, carefully follow this: ${userRequest}`;
+
+            // --- PHASE 1: FAST TEXT GENERATION (2-3s) ---
+            setLoadingStep("에디터가 추천사를 작성 중입니다...");
+            const noteRes = await fetch("/api/styling/note", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    prompt: generationPrompt, 
-                    image: base64, 
-                    clothImage: itemImages.cloth,
-                    accImage: itemImages.acc
-                }),
+                body: JSON.stringify({ prompt: generationPrompt, mode, dogName })
             });
-            const generateData = await generateRes.json();
-            if (!generateRes.ok) throw new Error(generateData.details);
-
-            const query = keywords.length > 0 ? keywords.join(" ") : (style as string);
-            setShoppingQuery(query);
-            const partnersRes = await fetch(`/api/partners?query=${encodeURIComponent(query)}`);
+            const noteData = await noteRes.json();
             
-            // Get description from the selected concept
             const selectedAiConcept = style !== 'custom' ? recommendations.find(c => c.id === style) : null;
             const currentDescription = selectedAiConcept?.description || (style === 'custom' ? "보호자님의 상상력이 담긴 특별한 커스텀 화보입니다." : "");
-            
-            // Use API returned analysis if available (for VTO), otherwise keep existing logic
-            if (generateData.analysis) {
-                analysis = generateData.analysis;
-            }
-
             const initialAnalysis = recommendations.length > 0 
                 ? recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]
                 : "";
 
+            // IMMEDIATELY Transition to Step 3 with Text Only
             setResults({
                 originalImage: base64,
-                styledImages: generateData.urls,
-                analysis,
+                styledImages: [], // Initially empty
+                analysis: noteData.analysis || "아이의 스타일을 분석 중입니다...",
                 baseAnalysis: initialAnalysis,
                 description: currentDescription,
                 dogName: dogName || undefined,
                 shoppingTip: currentShoppingTip,
-                keywords: keywords.length > 0 ? keywords : undefined
+                keywords: keywords.length > 0 ? keywords : undefined,
+                personalColor: personalColor
             });
-            setProducts(await partnersRes.json());
             setStep(3);
+
+            // --- PHASE 2: BACKGROUND IMAGE GENERATION (10-15s) ---
+            const query = keywords.length > 0 ? keywords.join(" ") : (style as string);
+            setShoppingQuery(query);
+            
+            // Start fetching products and images in parallel
+            const [generateRes, partnersRes] = await Promise.all([
+                fetch("/api/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: generationPrompt, image: base64, clothImage: itemImages.cloth, accImage: itemImages.acc }),
+                }),
+                fetch(`/api/partners?query=${encodeURIComponent(query)}`)
+            ]);
+
+            const generateData = await generateRes.json();
+            if (!generateRes.ok) throw new Error(generateData.details);
+
+            // UPDATE Results with actual images
+            setResults(prev => prev ? { ...prev, styledImages: generateData.urls } : null);
+            setProducts(await partnersRes.json());
+            
         } catch (e: any) {
             alert(`생성 중 오류: ${e.message}`);
+            setStep(2); // Rollback on error
         } finally {
             setLoading(false);
         }
@@ -446,6 +467,9 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                                 shoppingTip={results.shoppingTip} 
                                 dogName={results.dogName} 
                                 keywords={results.keywords}
+                                personalColor={results.personalColor}
+                                onRetry={handleRetry}
+                                retryCount={retryCount}
                                 styleName={
                                     (selectedCloth || selectedAcc) 
                                         ? [selectedCloth?.name, selectedAcc?.name].filter(Boolean).join(" + ")

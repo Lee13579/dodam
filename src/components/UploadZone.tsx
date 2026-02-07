@@ -16,13 +16,16 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
 
     // Sync preview with selectedFile prop
     useEffect(() => {
-        if (selectedFile) {
-            const reader = new FileReader();
-            reader.onload = (e) => setPreview(e.target?.result as string);
-            reader.readAsDataURL(selectedFile);
-        } else {
+        if (!selectedFile) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPreview(null);
+            return;
         }
+
+        const objectUrl = URL.createObjectURL(selectedFile);
+        setPreview(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl);
     }, [selectedFile]);
 
     const handleDrag = (e: React.DragEvent) => {

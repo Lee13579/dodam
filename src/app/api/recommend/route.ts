@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
 ### 필독: 응답 데이터 구조 (JSON)
 {
+  "personalColor": "#HexCode (아이의 모색과 가장 잘 어울리는 대표 퍼스널 컬러)",
   "concepts": [ // 화보 컨셉 3개 (필수)
     {
       "id": "style_1",
