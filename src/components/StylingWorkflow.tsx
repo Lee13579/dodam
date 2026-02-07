@@ -2,17 +2,29 @@
 
 import { useState, useRef } from "react";
 import UploadZone from "./UploadZone";
-import StyleSelector from "./StyleSelector";
 import ResultCard from "./ResultCard";
 import ProductRecommendation from "./ProductRecommendation";
-import { DogStyle, Product } from "@/types";
+import PictorialStage from "./styling/PictorialStage";
+import FittingStage from "./styling/FittingStage";
+import { DogStyle, Product, AiConcept, SuggestedItem } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Stars, Bot, Shirt, Wand2, Camera, X, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ArrowLeft, Stars, Bot, X, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { getNaturalName } from "@/lib/utils";
 
 interface StylingWorkflowProps {
     step: number;
     setStep: (step: number) => void;
+}
+
+interface StylingResults {
+    originalImage: string;
+    styledImages: string[];
+    analysis: string;
+    baseAnalysis: string;
+    description: string;
+    dogName?: string;
+    shoppingTip?: string;
+    keywords?: string[];
 }
 
 const resizeImage = (file: File, maxWidth = 1024): Promise<string> => {
@@ -59,11 +71,11 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     const [customPrompt, setCustomPrompt] = useState("");
     const [userRequest, setUserRequest] = useState("");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [results, setResults] = useState<any | null>(null);
+    const [results, setResults] = useState<StylingResults | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
-    const [recommendations, setRecommendations] = useState<any[]>([]);
-    const [suggestedClothes, setSuggestedClothes] = useState<any[]>([]);
-    const [suggestedAccessories, setSuggestedAccessories] = useState<any[]>([]);
+    const [recommendations, setRecommendations] = useState<AiConcept[]>([]);
+    const [suggestedClothes, setSuggestedClothes] = useState<SuggestedItem[]>([]);
+    const [suggestedAccessories, setSuggestedAccessories] = useState<SuggestedItem[]>([]);
     
     // Scroll Refs
     const clothScrollRef = useRef<HTMLDivElement>(null);
@@ -79,8 +91,8 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
     };
 
     // Selection state for VTO
-    const [selectedCloth, setSelectedCloth] = useState<any | null>(null);
-    const [selectedAcc, setSelectedAcc] = useState<any | null>(null);
+    const [selectedCloth, setSelectedCloth] = useState<SuggestedItem | null>(null);
+    const [selectedAcc, setSelectedAcc] = useState<SuggestedItem | null>(null);
     
     const [shoppingQuery, setShoppingQuery] = useState("");
     const [loadingMore, setLoadingMore] = useState(false);
@@ -89,7 +101,14 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
         const file = e.target.files?.[0];
         if (!file) return;
         const base64 = await resizeImage(file, 512);
-        const customItem = { id: `custom-${type}-${Date.now()}`, image: base64, name: type === 'cloth' ? "나의 옷" : "나의 소품", isUserUploaded: true };
+        const customItem: SuggestedItem = { 
+            id: `custom-${type}-${Date.now()}`, 
+            image: base64, 
+            name: type === 'cloth' ? "나의 옷" : "나의 소품", 
+            isUserUploaded: true,
+            searchKeyword: "",
+            description: ""
+        };
         if (type === 'cloth') setSelectedCloth(customItem);
         else setSelectedAcc(customItem);
     };
@@ -128,13 +147,13 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
         }
     };
 
-    const fetchRealProductForItem = async (item: any) => {
+    const fetchRealProductForItem = async (item: SuggestedItem): Promise<SuggestedItem> => {
         try {
             const res = await fetch(`/api/partners?query=${encodeURIComponent(item.searchKeyword)}&start=1`);
             const products = await res.json();
             if (products && products.length > 0) return { ...item, realProduct: products[0] };
             return item;
-        } catch (_) { return item; }
+        } catch { return item; }
     };
 
     const handleStep1Submit = async () => {
@@ -267,14 +286,25 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
             // Get description from the selected concept
             const selectedAiConcept = style !== 'custom' ? recommendations.find(c => c.id === style) : null;
             const currentDescription = selectedAiConcept?.description || (style === 'custom' ? "보호자님의 상상력이 담긴 특별한 커스텀 화보입니다." : "");
+            
+            // Use API returned analysis if available (for VTO), otherwise keep existing logic
+            if (generateData.analysis) {
+                analysis = generateData.analysis;
+            }
+
+            const initialAnalysis = recommendations.length > 0 
+                ? recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]
+                : "";
 
             setResults({
                 originalImage: base64,
                 styledImages: generateData.urls,
                 analysis,
-                description: currentDescription, // Pass the description
+                baseAnalysis: initialAnalysis,
+                description: currentDescription,
                 dogName: dogName || undefined,
-                shoppingTip: currentShoppingTip 
+                shoppingTip: currentShoppingTip,
+                keywords: keywords.length > 0 ? keywords : undefined
             });
             setProducts(await partnersRes.json());
             setStep(3);
@@ -357,225 +387,42 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                         </div>
 
                         {mode === 'pictorial' ? (
-                            /* PICTORIAL MODE: Focus on Style Concepts */
-                            <div className="space-y-16">
-                                {/* Photo + Analysis Header - Side by Side Layout */}
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center max-w-5xl mx-auto px-6">
-                                    <div className="md:col-span-6 flex justify-center md:justify-end">
-                                        <div className="relative w-full aspect-[3/4] max-w-[320px] rounded-[48px] overflow-hidden z-0 border-8 border-white shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
-                                            {previewUrl && <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="md:col-span-6 flex justify-center md:justify-start">
-                                        {recommendations.length > 0 && (
-                                            <motion.div 
-                                                initial={{ opacity: 0, x: 20 }} 
-                                                animate={{ opacity: 1, x: 0 }} 
-                                                className="max-w-[380px] w-full relative"
-                                            >
-                                                {/* Notepad Design - Side by side with photo */}
-                                                <div className="relative bg-[#FFFEF9] p-10 rounded-sm shadow-2xl border-l-[6px] border-pink-200 transform rotate-[-1deg] hover:rotate-0 transition-transform duration-500">
-                                                    {/* Pin Decoration - Top Center */}
-                                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border border-stone-100">
-                                                        <div className="w-3 h-3 bg-pink-400 rounded-full shadow-inner" />
-                                                    </div>
-                                                    
-                                                    <div className="space-y-4 mt-2">
-                                                        <p className="text-[#5d4d3d] text-xl font-bold leading-relaxed break-keep tracking-tight text-center">
-                                                            &quot;{recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]}.&quot;
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/40 backdrop-blur-xl rounded-[48px] p-8 md:p-12 border border-[#fff4e6] shadow-2xl">
-                                    <StyleSelector selectedStyle={style} onSelect={setStyle} recommendations={recommendations} onRegenerate={() => {}} regenerating={false} />
-                                    {style === 'custom' && (
-                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="max-w-2xl mx-auto space-y-4 mt-12">
-                                            <label className="block text-xl font-bold text-[#2d241a] font-outfit flex items-center gap-2"><Stars className="text-pink-500 fill-pink-500 w-5 h-5" />나만의 커스텀 스타일 제안</label>
-                                            <textarea value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} placeholder="예: 전통 한복을 입은 귀여운 도령님..." className="w-full h-40 px-6 py-5 rounded-[32px] border-2 border-[#fff4e6] outline-none resize-none text-lg bg-white/50 text-[#2d241a] font-medium leading-relaxed" />
-                                        </motion.div>
-                                    )}
-                                </div>
-
-                                <div className="max-w-2xl mx-auto w-full flex flex-col items-center gap-6 py-10 bg-white/40 backdrop-blur-xl rounded-[40px] border border-[#fff4e6] shadow-xl">
-                                    <div className="w-full px-10 space-y-4">
-                                                                        <label className="block text-sm font-bold text-[#8b7355] text-center mb-2 flex items-center justify-center gap-2">
-                                                                            화보에 담고 싶은 추가 요청사항
-                                                                        </label>
-                                        
-                                        <input 
-                                            type="text" 
-                                            value={userRequest}
-                                            onChange={(e) => setUserRequest(e.target.value)}
-                                            placeholder="예: 배경을 조금 더 화사하게 해주세요"
-                                            className="w-full px-6 py-4 rounded-full border-2 border-white bg-white/50 focus:border-pink-300 outline-none text-center text-[#2d241a] font-medium transition-all shadow-inner"
-                                        />
-                                    </div>
-                                    <div className="flex flex-row gap-4 w-full px-10">
-                                        <button onClick={handleReset} className="flex-1 px-4 py-4 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] text-sm opacity-80">다시 업로드</button>
-                                        <button 
-                                            onClick={handleStartAnalysis} 
-                                            disabled={loading || (!style && !selectedCloth && !selectedAcc) || (style === 'custom' && !customPrompt.trim())} 
-                                            className="flex-[2] px-6 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 shadow-2xl text-lg h-[68px] flex items-center justify-center gap-2"
-                                        >
-                                            {loading ? (
-                                                <>
-                                                    <Loader2 className="w-5 h-5 animate-spin" /> 
-                                                    <span className="text-sm">{loadingStep}</span>
-                                                </>
-                                            ) : (
-                                                <span className="truncate">{style ? "화보 생성하기" : "스타일을 선택해주세요"}</span>
-                                            )}
-                                        </button>
-                                    </div>
-                                    <label className="flex items-center gap-3 cursor-pointer group py-2 px-6 rounded-full hover:bg-white/40 transition-all border border-transparent hover:border-pink-100">
-                                        <input type="checkbox" checked={keepBackground} onChange={(e) => setKeepBackground(e.target.checked)} className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 transition-all cursor-pointer accent-pink-500" />
-                                        <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-sm">원본 사진 배경 유지하기</span>
-                                    </label>
-                                </div>
-                            </div>
+                            <PictorialStage 
+                                previewUrl={previewUrl}
+                                recommendations={recommendations}
+                                style={style}
+                                setStyle={setStyle}
+                                customPrompt={customPrompt}
+                                setCustomPrompt={setCustomPrompt}
+                                userRequest={userRequest}
+                                setUserRequest={setUserRequest}
+                                keepBackground={keepBackground}
+                                setKeepBackground={setKeepBackground}
+                                loading={loading}
+                                loadingStep={loadingStep}
+                                onReset={handleReset}
+                                onSubmit={handleStartAnalysis}
+                            />
                         ) : (
-                            /* VTO MODE: Focus on Curation & Slots */
-                            <div className="space-y-12">
-                                {/* Styling Board: Dog (Left) | Cloth + Acc (Right) */}
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-                                    {/* Left: Base Model (Dog) - 3:4 Ratio */}
-                                    <div className="lg:col-span-6 flex flex-col items-center justify-center">
-                                        <div className="relative w-full aspect-[3/4] max-w-[420px] rounded-[56px] overflow-hidden z-0">
-                                            {previewUrl && <img src={previewUrl} alt="Dog preview" className="w-full h-full object-cover" />}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-                                        </div>
-                                        {recommendations.length > 0 && (
-                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-[420px] w-full -mt-12 z-10 relative px-6">
-                                                <div className="relative bg-[#FFFEF9] p-8 rounded-sm shadow-2xl border-l-[6px] border-pink-200 transform rotate-1 hover:rotate-0 transition-transform duration-500">
-                                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border border-stone-100">
-                                                        <div className="w-3 h-3 bg-pink-400 rounded-full shadow-inner" />
-                                                    </div>
-                                                    <div className="space-y-3 mt-2">
-                                                        <p className="text-[#5d4d3d] text-lg font-bold leading-relaxed break-keep tracking-tight text-center">&quot;{recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]}.&quot;</p>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    {/* Right: Item Slots + Action Panel */}
-                                    <div className="lg:col-span-6 flex flex-col gap-8">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedCloth ? 'border-pink-500' : 'border-dashed border-pink-200'}`}>
-                                                {selectedCloth ? (
-                                                    <div className="w-full h-full relative">
-                                                        <img src={selectedCloth.image || selectedCloth.realProduct?.image} className="w-full h-full object-cover" alt="Selected Cloth" />
-                                                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                                        <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
-                                                        <div className="absolute bottom-8 inset-x-8 text-center">
-                                                            <span className="bg-pink-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">의류 큐레이션</span>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-pink-50/50 transition-colors">
-                                                        <input type="file" className="hidden" onChange={(e) => handleItemUpload('cloth', e)} accept="image/*" />
-                                                        <div className="w-20 h-20 rounded-3xl bg-pink-50 flex items-center justify-center text-pink-500 mb-6 group-hover:scale-110 transition-transform"><Shirt size={40} /></div>
-                                                        <p className="font-black text-[#5d4d3d] text-2xl mb-2">의류 큐레이션</p>
-                                                        <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
-                                                    </label>
-                                                )}
-                                            </div>
-                                            <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedAcc ? 'border-blue-500' : 'border-dashed border-blue-200'}`}>
-                                                {selectedAcc ? (
-                                                    <div className="w-full h-full relative">
-                                                        <img src={selectedAcc.image || selectedAcc.realProduct?.image} className="w-full h-full object-cover" alt="Selected Acc" />
-                                                        <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                                        <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all"><X size={20} /></button>
-                                                        <div className="absolute bottom-8 inset-x-8 text-center">
-                                                            <span className="bg-blue-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">액세서리 큐레이션</span>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-blue-50/50 transition-colors">
-                                                        <input type="file" className="hidden" onChange={(e) => handleItemUpload('acc', e)} accept="image/*" />
-                                                        <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform"><Wand2 size={40} /></div>
-                                                        <p className="font-black text-[#5d4d3d] text-2xl mb-2">액세서리 큐레이션</p>
-                                                        <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
-                                                    </label>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="w-full flex flex-col items-center gap-6 py-8 bg-white/40 backdrop-blur-xl rounded-[40px] border border-[#fff4e6] shadow-xl">
-                                            <div className="w-full px-8 space-y-4">
-                                                <label className="block text-sm font-bold text-[#8b7355] text-center mb-2 flex items-center justify-center gap-2"><Sparkles size={14} className="text-pink-500" /> 추가 요청사항이 있으신가요?</label>
-                                                <input type="text" value={userRequest} onChange={(e) => setUserRequest(e.target.value)} placeholder="예: 조금 더 화려하게 해주세요" className="w-full px-6 py-4 rounded-full border-2 border-white bg-white/50 focus:border-pink-300 outline-none text-center text-[#2d241a] font-medium transition-all shadow-inner" />
-                                            </div>
-                                            <div className="flex flex-row gap-4 w-full px-8">
-                                                <button onClick={handleReset} className="flex-1 px-4 py-4 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] text-sm opacity-80">다시 업로드</button>
-                                                <button onClick={handleStartAnalysis} disabled={loading || (!style && !selectedCloth && !selectedAcc) || (style === 'custom' && !customPrompt.trim())} className="flex-[2] px-6 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 shadow-2xl text-lg h-[68px] flex items-center justify-center gap-2">
-                                                    {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span className="text-sm">{loadingStep}</span></> : <span className="truncate">{(style || selectedCloth || selectedAcc) ? "스타일링 적용" : "아이템 선택"}</span>}
-                                                </button>
-                                            </div>
-                                            <label className="flex items-center gap-3 cursor-pointer group py-2 px-6 rounded-full hover:bg-white/40 transition-all border border-transparent hover:border-pink-100">
-                                                <input type="checkbox" checked={keepBackground} onChange={(e) => setKeepBackground(e.target.checked)} className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 transition-all cursor-pointer accent-pink-500" />
-                                                <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-sm">원본 사진 배경 유지하기</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-16 mt-16 pt-16 border-t border-[#fff4e6]">
-                                    <div className="space-y-8 relative group/list">
-                                        <div className="flex items-center gap-3 justify-center">
-                                            <Shirt className="text-pink-500 w-6 h-6" />
-                                            <h3 className="text-xl font-bold text-[#5d4d3d]">의류 <span className="text-pink-500">큐레이션</span></h3>
-                                        </div>
-                                        <div className="relative px-14">
-                                            <button onClick={() => scroll(clothScrollRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronLeft size={28} strokeWidth={3} /></button>
-                                            <button onClick={() => scroll(clothScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronRight size={28} strokeWidth={3} /></button>
-                                            <div ref={clothScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
-                                                {suggestedClothes.map((item) => (
-                                                    <button key={item.id} onClick={() => setSelectedCloth(selectedCloth?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedCloth?.id === item.id ? 'border-pink-500 ring-4 ring-pink-100' : 'border-[#fff4e6] hover:border-pink-300'}`}>
-                                                        {item.realProduct?.image ? <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-stone-300"><Shirt size={48} /></div>}
-                                                        {selectedCloth?.id === item.id && <div className="absolute top-6 left-6 bg-pink-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
-                                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
-                                                            <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>
-                                                            <h4 className="text-white text-lg font-bold line-clamp-1 mb-1">{item.name}</h4>
-                                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-8 relative group/list">
-                                        <div className="flex items-center gap-3 justify-center">
-                                            <Wand2 className="text-blue-500 w-6 h-6" />
-                                            <h3 className="text-xl font-bold text-[#5d4d3d]">액세서리 <span className="text-pink-500">큐레이션</span></h3>
-                                        </div>
-                                        <div className="relative px-14">
-                                            <button onClick={() => scroll(accScrollRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronLeft size={28} strokeWidth={3} /></button>
-                                            <button onClick={() => scroll(accScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronRight size={28} strokeWidth={3} /></button>
-                                            <div ref={accScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
-                                                {suggestedAccessories.map((item) => (
-                                                    <button key={item.id} onClick={() => setSelectedAcc(selectedAcc?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedAcc?.id === item.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-[#fff4e6] hover:border-blue-300'}`}>
-                                                        {item.realProduct?.image ? <img src={item.realProduct.image} alt={item.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-stone-300"><Wand2 size={48} /></div>}
-                                                        {selectedAcc?.id === item.id && <div className="absolute top-6 left-6 bg-blue-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
-                                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
-                                                            <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>
-                                                            <h4 className="text-white text-lg font-bold line-clamp-1 mb-1">{item.name}</h4>
-                                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <FittingStage 
+                                previewUrl={previewUrl}
+                                recommendations={recommendations}
+                                selectedCloth={selectedCloth}
+                                setSelectedCloth={setSelectedCloth}
+                                selectedAcc={selectedAcc}
+                                setSelectedAcc={setSelectedAcc}
+                                suggestedClothes={suggestedClothes}
+                                suggestedAccessories={suggestedAccessories}
+                                userRequest={userRequest}
+                                setUserRequest={setUserRequest}
+                                keepBackground={keepBackground}
+                                setKeepBackground={setKeepBackground}
+                                loading={loading}
+                                loadingStep={loadingStep}
+                                handleItemUpload={handleItemUpload}
+                                onReset={handleReset}
+                                onSubmit={handleStartAnalysis}
+                            />
                         )}
                     </motion.div>
                 )}
@@ -594,9 +441,11 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                                 originalImage={results.originalImage} 
                                 styledImages={results.styledImages} 
                                 analysis={results.analysis} 
-                                description={results.description} // Pass description here
+                                baseAnalysis={results.baseAnalysis}
+                                description={results.description}
                                 shoppingTip={results.shoppingTip} 
                                 dogName={results.dogName} 
+                                keywords={results.keywords}
                                 styleName={
                                     (selectedCloth || selectedAcc) 
                                         ? [selectedCloth?.name, selectedAcc?.name].filter(Boolean).join(" + ")
@@ -605,7 +454,7 @@ export default function StylingWorkflow({ step, setStep }: StylingWorkflowProps)
                             />
                         </div>
                         <div className="mt-16 pt-16 border-t border-[#fff4e6]">
-                            <ProductRecommendation products={products} shoppingTip={results.shoppingTip} onLoadMore={handleLoadMoreProducts} loadingMore={loadingMore} />
+                            <ProductRecommendation products={products} onLoadMore={handleLoadMoreProducts} loadingMore={loadingMore} />
                         </div>
                     </motion.div>
                 )}

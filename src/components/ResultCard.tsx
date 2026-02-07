@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from "framer-motion";
-import { Download, Share2, Stars } from "lucide-react";
+import { Download, Share2, Stars, Sparkles } from "lucide-react";
 import { getStyleColor } from '@/lib/utils';
 import { applyNoteWatermark } from '@/lib/watermark';
 
@@ -10,13 +10,15 @@ interface ResultCardProps {
     originalImage: string;
     styledImages: string[];
     analysis: string;
-    description?: string; // Added description
+    baseAnalysis?: string; // Initial dog analysis from Step 2
+    description?: string;
     shoppingTip?: string;
     dogName?: string;
     styleName?: string;
+    keywords?: string[];
 }
 
-export default function ResultCard({ originalImage, styledImages, analysis, description, shoppingTip, dogName, styleName }: ResultCardProps) {
+export default function ResultCard({ originalImage, styledImages, analysis, baseAnalysis, description, shoppingTip, dogName, styleName, keywords }: ResultCardProps) {
     const noteColor = getStyleColor(styleName || '도담 스타일');
 
     const handleDownload = async (imgUrl: string, index: number) => {
@@ -62,6 +64,27 @@ export default function ResultCard({ originalImage, styledImages, analysis, desc
                             </div>
                         </div>
                     </div>
+
+                    {/* Step 2 Analysis Note - Continuity */}
+                    {baseAnalysis && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className="mt-8 relative px-2"
+                        >
+                            <div className="relative bg-[#FFFEF9] p-6 rounded-sm shadow-xl border-l-[4px] border-pink-200 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+                                {/* Pin Decoration */}
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center border border-stone-50">
+                                    <div className="w-2 h-2 bg-pink-400 rounded-full shadow-inner" />
+                                </div>
+                                
+                                <p className="text-[#5d4d3d] text-sm font-bold leading-relaxed break-keep text-center italic">
+                                    &quot;{baseAnalysis}&quot;
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
                 </motion.div>
 
                 {/* Styled Results - Main Focus with Notes */}
@@ -84,8 +107,6 @@ export default function ResultCard({ originalImage, styledImages, analysis, desc
                                 {/* Internal Style Note - Emotional Tag Style */}
                                 <div className="absolute bottom-4 right-4 w-fit min-w-[140px] max-w-[220px] transform rotate-[-1deg] transition-transform duration-500 group-hover:rotate-0 pointer-events-none">
                                     <div className="bg-[#FFFEF9]/95 backdrop-blur-sm p-3.5 pb-2.5 rounded-sm shadow-[3px_3px_12px_rgba(0,0,0,0.15)] border-l-[4px] relative overflow-hidden" style={{ borderLeftColor: noteColor }}>
-                                        <div className="absolute top-0 right-0 w-6 h-6 bg-black/5 rounded-bl-full" />
-                                        
                                         <div className="space-y-1.5 text-[11px] leading-tight text-[#2D241A] font-bold">
                                             {dogName && (
                                                 <div className="flex gap-1.5">
@@ -131,48 +152,31 @@ export default function ResultCard({ originalImage, styledImages, analysis, desc
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-12 items-start mt-16">
+            <div className="mt-16">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
                     className="bg-white rounded-[60px] p-12 md:p-20 shadow-2xl shadow-stone-100 border border-stone-100 relative overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-pink-50 rounded-bl-[160px] -z-10 opacity-40" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-stone-50 rounded-full -z-10 opacity-60" />
                     
-                    <div className="space-y-16">
-                        {/* Section 1: Emotional Analysis Quote */}
-                        <div className="relative">
-                            <span className="absolute -top-10 -left-6 text-9xl text-pink-100 font-serif serif pointer-events-none select-none">&ldquo;</span>
-                            <p className="text-stone-700 text-3xl md:text-4xl font-black leading-tight break-keep relative z-10">
-                                {analysis}
-                            </p>
-                        </div>
-
-                        {/* Section 2: Concept Briefing & Practical Styling Guide */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-12 border-t border-stone-100">
-                            {/* Concept Story */}
-                            <div className="space-y-4">
-                                <h4 className="text-xs font-black text-pink-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                                    <Stars size={14} /> Concept Story
-                                </h4>
-                                <p className="text-stone-600 text-xl font-bold leading-relaxed break-keep">
-                                    {description || "아이의 개성과 현재 트렌드를 조화롭게 믹스한 도담만의 단독 스타일링 컨셉입니다."}
-                                </p>
+                    <div className="space-y-12">
+                        {/* Section 1: Emotional Styling Recommendation */}
+                        <div className="relative text-center">
+                            <div className="flex items-center justify-center gap-4 text-[#8b7355] text-sm font-black tracking-[0.3em] uppercase mb-12 opacity-60">
+                                <span className="w-12 h-[1px] bg-[#8b7355]/30"></span>
+                                Editor&apos;s Choice
+                                <span className="w-12 h-[1px] bg-[#8b7355]/30"></span>
                             </div>
-
-                            {/* Styling Guide */}
-                            {shoppingTip && (
-                                <div className="space-y-4 bg-[#FFFEF9] p-8 rounded-[32px] border border-pink-100 shadow-sm relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-12 h-12 bg-pink-50 rounded-bl-full" />
-                                    <h4 className="text-xs font-black text-stone-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                                        <Sparkles size={14} /> Styling Guide
-                                    </h4>
-                                    <p className="text-[#8B7355] text-lg font-bold leading-relaxed break-keep">
-                                        {shoppingTip}
-                                    </p>
-                                </div>
-                            )}
+                            
+                            <div className="relative inline-block max-w-4xl">
+                                <span className="absolute -top-10 -left-12 text-9xl text-stone-100 font-serif serif pointer-events-none select-none leading-none">&ldquo;</span>
+                                <p className="text-[#2D241A] text-2xl md:text-4xl font-black leading-[1.6] break-keep relative z-10 tracking-tight italic px-4">
+                                    {analysis}
+                                </p>
+                                <span className="absolute -bottom-20 -right-12 text-9xl text-stone-100 font-serif serif pointer-events-none select-none leading-none">&rdquo;</span>
+                            </div>
                         </div>
                     </div>
                 </motion.div>

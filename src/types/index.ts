@@ -26,3 +26,24 @@ export interface Product {
     url: string;
     category: "Grooming" | "Accessory" | "Shampoo" | "Clothing";
 }
+
+export interface AiConcept {
+    id: string;
+    name: string;
+    description: string;
+    koreanAnalysis: string;
+    shoppingTip: string;
+    customPrompt: string;
+    searchKeywords: string[];
+    vtoOutfitEnglish?: string;
+}
+
+export interface SuggestedItem {
+    id: string;
+    name: string;
+    searchKeyword: string;
+    description: string;
+    image?: string;
+    realProduct?: Product;
+    isUserUploaded?: boolean;
+}

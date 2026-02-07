@@ -7,12 +7,11 @@ import { ExternalLink, Sparkles, Loader2, Plus } from "lucide-react";
 
 interface ProductRecommendationProps {
     products: Product[];
-    shoppingTip?: string;
     onLoadMore?: () => void;
     loadingMore?: boolean;
 }
 
-export default function ProductRecommendation({ products, shoppingTip, onLoadMore, loadingMore }: ProductRecommendationProps) {
+export default function ProductRecommendation({ products, onLoadMore, loadingMore }: ProductRecommendationProps) {
     if (products.length === 0) return null;
 
     return (
@@ -53,7 +52,7 @@ export default function ProductRecommendation({ products, shoppingTip, onLoadMor
                             </a>
 
                             <div className="px-4 space-y-2 text-center">
-                                <h3 className="text-[#2D241A] font-bold text-lg line-clamp-1 leading-snug group-hover:text-pink-500 transition-colors">
+                                <h3 className="text-[#2D241A] font-bold text-base md:text-lg line-clamp-2 leading-snug group-hover:text-pink-500 transition-colors min-h-[2.8em] flex items-center justify-center">
                                     {product.name}
                                 </h3>
                                 <div className="flex items-center justify-center gap-1">

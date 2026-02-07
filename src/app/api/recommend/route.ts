@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       "id": "style_1",
       "name": "컨셉 이름 (예: 제주도 유채꽃 산책)",
       "description": "추천 이유 (따뜻한 말투, 한글 2줄)",
-      "koreanAnalysis": "아이의 매력 포인트 분석 (다정한 말투, 한글 2줄)",
+      "koreanAnalysis": "아이의 모색, 체형, 이미지를 분석하여 가장 잘 어울리는 '베스트 패션 스타일(예: 프레피 룩, 어반 시크 등)'을 구체적으로 추천해 주세요. 이 스타일이 아이의 어떤 매력을 살려주는지 설명하고, '아래 추천 아이템으로 이 룩을 완성해 보세요'라는 뉘앙스로 자연스럽게 연결되는 멘트를 작성하세요. (다정한 에디터 톤, 한글 3-4줄)",
       "shoppingTip": "이 스타일을 더 돋보이게 할 한 줄 코디 팁",
       "customPrompt": "High-quality English image generation prompt for this concept",
       "searchKeywords": ["검색어1", "검색어2"]

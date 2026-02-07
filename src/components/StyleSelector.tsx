@@ -1,19 +1,17 @@
 "use client";
 
-import { DogStyle } from "@/types";
+import { DogStyle, AiConcept } from "@/types";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface StyleSelectorProps {
     selectedStyle: DogStyle | null;
-    onSelect: (style: DogStyle) => void;
-    recommendations: Array<{ id: string; name: string; description: string; customPrompt: string }>;
-    onRegenerate: () => void;
-    regenerating: boolean;
+    onSelect: (style: DogStyle | null) => void;
+    recommendations: AiConcept[];
     originalImage?: string;
 }
 
-export default function StyleSelector({ selectedStyle, onSelect, recommendations, onRegenerate, regenerating }: StyleSelectorProps) {
+export default function StyleSelector({ selectedStyle, onSelect, recommendations }: StyleSelectorProps) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -26,7 +24,7 @@ export default function StyleSelector({ selectedStyle, onSelect, recommendations
                         transition={{ delay: index * 0.1 }}
                         whileHover={{ y: -8, scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => onSelect(selectedStyle === concept.id ? null as any : concept.id as DogStyle)}
+                        onClick={() => onSelect(selectedStyle === concept.id ? null : concept.id)}
                         className={`relative p-10 rounded-[48px] border-2 text-left transition-all overflow-hidden h-full flex flex-col group ${selectedStyle === concept.id
                             ? "border-pink-500 bg-pink-50/50 shadow-2xl shadow-pink-100"
                             : "border-[#fff4e6] bg-white/60 backdrop-blur-sm hover:border-pink-200 hover:bg-pink-50/20 shadow-xl shadow-orange-50/50"
@@ -55,7 +53,7 @@ export default function StyleSelector({ selectedStyle, onSelect, recommendations
                     transition={{ delay: recommendations.length * 0.1 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => onSelect(selectedStyle === 'custom' ? null as any : 'custom')}
+                    onClick={() => onSelect(selectedStyle === 'custom' ? null : 'custom')}
                     className={`relative p-10 rounded-[48px] border-2 text-left transition-all overflow-hidden h-full flex flex-col group ${selectedStyle === 'custom'
                         ? "border-pink-500 bg-pink-50/50 shadow-2xl shadow-pink-100"
                         : "border-[#fff4e6] bg-white/60 backdrop-blur-sm hover:border-pink-200 hover:bg-pink-50/20 shadow-xl shadow-orange-50/50"
