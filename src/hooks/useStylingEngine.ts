@@ -214,14 +214,26 @@ export const useStylingEngine = () => {
             if (userRequest.trim()) generationPrompt += `. Additionally, carefully follow this: ${userRequest}`;
 
             setLoadingStep("에디터가 추천사를 작성 중입니다...");
+
+            // Prepare structured context for Note Generation
+            const selectedAiConcept = recommendations.find(c => c.id === style);
+            const contextItems = (selectedCloth || selectedAcc)
+                ? [selectedCloth?.name, selectedAcc?.name].filter(Boolean) as string[]
+                : [];
+
             const noteRes = await fetch("/api/styling/note", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: generationPrompt, mode, dogName })
+                body: JSON.stringify({
+                    prompt: generationPrompt,
+                    mode,
+                    dogName,
+                    conceptName: selectedAiConcept?.name || (style === 'custom' ? 'Custom Style' : undefined),
+                    items: contextItems
+                })
             });
             const noteData = await noteRes.json();
 
-            const selectedAiConcept = style !== 'custom' ? recommendations.find(c => c.id === style) : null;
             const currentDescription = selectedAiConcept?.description || (style === 'custom' ? "보호자님의 상상력이 담긴 특별한 커스텀 화보입니다." : "");
             const initialAnalysis = recommendations.length > 0
                 ? recommendations[0].koreanAnalysis.replace(/^\d+[\.\)]\s*/, '').split('.')[0]
@@ -247,7 +259,13 @@ export const useStylingEngine = () => {
                 fetch("/api/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: generationPrompt, image: base64, clothImage: itemImages.cloth, accImage: itemImages.acc }),
+                    body: JSON.stringify({
+                        prompt: generationPrompt,
+                        image: base64,
+                        clothImage: itemImages.cloth,
+                        accImage: itemImages.acc,
+                        keepBackground
+                    }),
                 }),
                 fetch(`/api/partners?query=${encodeURIComponent(query)}`)
             ]);

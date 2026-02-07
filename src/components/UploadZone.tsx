@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { toast } from "sonner";
 
 interface UploadZoneProps {
     onFileSelect: (file: File | null) => void;
@@ -57,7 +58,7 @@ export default function UploadZone({ onFileSelect, selectedFile }: UploadZonePro
 
     const handleFiles = (file: File) => {
         if (!file.type.startsWith("image/")) {
-            alert("이미지 파일을 선택해주세요.");
+            toast.error("이미지 파일을 선택해 주세요.");
             return;
         }
         onFileSelect(file);

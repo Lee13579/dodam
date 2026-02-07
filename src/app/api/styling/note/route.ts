@@ -19,18 +19,29 @@ export async function POST(req: NextRequest) {
         if (!validation.success) {
             return NextResponse.json({ error: "Invalid Input", details: validation.error.format() }, { status: 400 });
         }
-        const { prompt, mode, dogName } = validation.data;
+        const { prompt, mode, dogName, conceptName, items } = validation.data;
+
+        let contextInstruction = "";
+        if (mode === 'vto' && items && items.length > 0) {
+            contextInstruction = `Thinking about the items: "${items.join(", ")}", explain why these specific items fit the dog's style.`;
+        } else if (mode === 'pictorial' && conceptName) {
+            contextInstruction = `Focus on the concept "${conceptName}" and explain how this setting highlights the dog's features.`;
+        } else {
+            contextInstruction = `Analyze the style request: "${prompt}"`;
+        }
 
         const analysisPrompt = `
             You are a luxury fashion editor for dogs named "Dodam".
-            Context: ${prompt}
+            
+            [INPUTS]
             Dog's Name: ${dogName || "아이"}
             Mode: ${mode === 'pictorial' ? 'Luxury Pictorial Concept' : 'Real Fitting/VTO Style'}
+            Context: ${contextInstruction}
 
-            Task: Write an elegant 'Editor's Choice' recommendation note (in Korean).
+            [TASK]
+            Write an elegant 'Editor's Choice' recommendation note (in Korean).
             - Focus on why this style/item is the "Best Choice" for this specific dog.
             - Mention specific fashion styles (e.g., Preppy, Urban Chic, Modern Hanbok).
-            - End with a natural transition like "Complete this look with the items below."
             - Tone: Sophisticated, warm, and professional (Fashion Magazine Style).
             - Length: 3-4 sentences.
             - Output: Pure Korean text only. No quotes, no intro/outro.
@@ -38,7 +49,7 @@ export async function POST(req: NextRequest) {
 
         const result = await geminiModel.generateContent({
             contents: [{ role: "user", parts: [{ text: analysisPrompt }] }],
-            generationConfig: { temperature: 0.8, maxOutputTokens: 500 }
+            generationConfig: { temperature: 0.7, maxOutputTokens: 500 } // Lowered to 0.7 for consistency
         });
 
         const text = result.response.text();

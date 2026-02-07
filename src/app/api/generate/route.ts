@@ -47,31 +47,51 @@ export async function POST(req: NextRequest) {
             const parts: any[] = [];
 
             if (isVTO) {
-                // PREMIUM VIRTUAL TRY-ON (Aligned with Pictorial Quality)
+                // PREMIUM VIRTUAL TRY-ON (Identity & Spatial Preservation Strategy)
                 instruction = (clothBase64 || accBase64)
-                    ? `Perform a MASTER-LEVEL Virtual Try-On. 
-                       Dress the exact dog from the first image in the items shown in the following images. 
-                       [STRICT] KEEP the original dog's face, gaze, and breed features identical. 
-                       [QUALITY] Treat this as a LUXURY FASHION PICTORIAL. Use professional studio lighting and textures.
-                       [TASK] Seamlessly blend the items onto the dog's body with realistic folds, shadows, and 3D depth. 
-                       The result must be a high-end, commercial-grade photograph.`
-                    : `Perform a luxury virtual try-on. Precisely dress this dog in: ${cleanPrompt}. 
-                       Maintain the dog's exact identity. If background change is allowed, use a stunning matching location. 
-                       Professional editorial quality with realistic fabric interaction.`;
+                    ? `MISSION: MASTER-LEVEL VIRTUAL TRY-ON WITH EXTREME REALISM.
+                       
+                       [INPUTS]
+                       - Image 1: The Base Model (Dog).
+                       - Image 2/3: The Garment/Accessory to be worn.
+
+                       [CRITICAL RULES]
+                       1. **IDENTITY PRESERVATION**: The dog's face, gaze, eyes, and fur texture must be 100% IDENTICAL to Image 1. Do not act as a generator; act as a "compositor".
+                       2. **PHYSICS & FIT**: The clothing must wrap around the dog's body naturally with realistic folds, gravity, and shadows.
+                       ${validation.data.keepBackground ? `3. **BACKGROUND PRESERVATION**: You MUST keep the original background of Image 1 exactly as it is. Only change the dog's attire.` : `3. **BACKGROUND**: Use a high-end studio setting or a location that perfectly matches the clothing's vibe.`}
+
+                       [EXECUTION]
+                       - Seamlessly blend the items onto the dog. 
+                       - Maintain the exact camera angle and lighting of the original dog photo.
+                       - The result must look like a raw photograph, not a 3D render.`
+                    : `MISSION: LUXURY FASHION STYLING.
+                       
+                       [REQUEST]
+                       Dress this specific dog in: ${cleanPrompt}.
+
+                       [CRITICAL RULES]
+                       1. **IDENTITY**: The dog in the output MUST be the same dog as the input.
+                       ${validation.data.keepBackground ? `2. **BACKGROUND**: PRESERVE the original background completely.` : `2. **BACKGROUND**: Transport the dog to a luxury location matching the outfit.`}
+                       3. **QUALITY**: Hyper-realistic textures. Cloth must interact with fur naturally.`;
 
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });
                 if (clothBase64) parts.push({ inlineData: { data: clothBase64, mimeType } });
                 if (accBase64) parts.push({ inlineData: { data: accBase64, mimeType } });
             } else {
-                // CLEAN & DIRECT PICTORIAL (Sales-Focused)
-                instruction = `Transform this dog into a luxury fashion pictorial.
-                   [STYLING] Dress the dog in the fashion items described: ${cleanPrompt}.
-                   [FOCUS] Highlight the clothing details (texture, buttons, patterns) to make them look desirable and shoppable.
-                   [SCENE] Change the background to a beautiful, matching location with a warm and cozy atmosphere.
-                   [MOOD] Apply cinematic color grading and soft, dreamy lighting.
-                   [PRESERVE] Maintain the dog's exact facial features and breed characteristics.
-                   Ultra-realistic, professional commercial quality.`;
+                // HIGH-END PICTORIAL (Concept & Mood Focus)
+                instruction = `MISSION: HIGH-END FASHION PICTORIAL.
+                   
+                   [CONCEPT]
+                   Transform this photo into a magazine-quality editorial shot based on: ${cleanPrompt}.
+
+                   [DIRECTIVES]
+                   - **IDENTITY**: Retain the dog's key features (breed, color, expression).
+                   - **STYLING**: The outfit should be detailed, textured, and fashionable.
+                   - **ATMOSPHERE**: Use cinematic lighting and color grading to match the concept.
+                   - **COMPOSITION**: ${validation.data.keepBackground ? "Keep the original composition and background, but enhance the lighting and mood." : "Create a completely new, immersive background that tells a story."}
+                   
+                   Make it look like a cover of Vogue or Elle for dogs.`;
 
                 parts.push({ text: instruction });
                 parts.push({ inlineData: { data: dogBase64, mimeType } });
@@ -80,7 +100,7 @@ export async function POST(req: NextRequest) {
             const result = await geminiImageModel.generateContent({
                 contents: [{ role: "user", parts }],
                 generationConfig: {
-                    temperature: isVTO ? 0.4 : 0.9,
+                    temperature: isVTO ? 0.4 : 0.7, // Lowered Pictorial temp for better coherence
                     topP: 0.95,
                 }
             });

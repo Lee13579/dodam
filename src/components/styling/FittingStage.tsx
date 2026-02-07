@@ -92,77 +92,79 @@ export default function FittingStage({
                 </div>
 
                 {/* Right: Item Slots + Action Panel */}
-                <div className="lg:col-span-6 flex flex-col gap-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="lg:col-span-6 flex flex-col gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Cloth Slot */}
-                        <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedCloth ? 'border-pink-500' : 'border-dashed border-pink-200'}`}>
+                        <div className={`relative group rounded-[56px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-2xl ${selectedCloth ? 'border-pink-500 ring-8 ring-pink-50' : 'border-dashed border-pink-100'}`}>
                             {selectedCloth ? (
                                 <div className="w-full h-full relative">
                                     <Image
                                         src={selectedCloth.image || selectedCloth.realProduct?.image || ""}
                                         alt="Selected Cloth"
                                         fill
-                                        className="object-cover"
+                                        className="object-cover transition-transform duration-700 group-hover:scale-110"
                                         unoptimized
                                     />
-                                    <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                    <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all z-10"><X size={20} /></button>
-                                    <div className="absolute bottom-8 inset-x-8 text-center z-10">
-                                        <span className="bg-pink-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">의류 큐레이션</span>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <button onClick={() => setSelectedCloth(null)} className="absolute top-6 right-6 p-3 bg-white/90 backdrop-blur-md rounded-full text-stone-500 hover:text-red-500 shadow-xl transition-all z-10 active:scale-95"><X size={20} /></button>
+                                    <div className="absolute bottom-10 inset-x-10 text-center z-10">
+                                        <span className="bg-pink-500 text-white px-8 py-3 rounded-full text-sm font-black shadow-xl uppercase tracking-[0.2em] backdrop-blur-sm border border-white/20">의류 큐레이션</span>
                                     </div>
                                 </div>
                             ) : (
-                                <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-pink-50/50 transition-colors">
+                                <label className="w-full h-full flex flex-col items-center justify-center p-12 cursor-pointer hover:bg-pink-50/30 transition-all group">
                                     <input type="file" className="hidden" onChange={(e) => handleItemUpload('cloth', e)} accept="image/*" />
-                                    <div className="w-20 h-20 rounded-3xl bg-pink-50 flex items-center justify-center text-pink-500 mb-6 group-hover:scale-110 transition-transform"><Shirt size={40} /></div>
-                                    <p className="font-black text-[#5d4d3d] text-2xl mb-2">의류 큐레이션</p>
-                                    <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
+                                    <div className="w-24 h-24 rounded-full bg-pink-50 flex items-center justify-center text-pink-500 mb-8 group-hover:scale-110 group-hover:bg-pink-100 transition-all border border-pink-100 shadow-inner"><Shirt size={48} /></div>
+                                    <p className="font-black text-[#5d4d3d] text-2xl mb-3">의류 선택</p>
+                                    <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium opacity-70">추천 아이템을 고르거나<br />옷 사진을 직접 업로드</p>
                                 </label>
                             )}
                         </div>
 
                         {/* Acc Slot */}
-                        <div className={`relative group rounded-[48px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-xl ${selectedAcc ? 'border-blue-500' : 'border-dashed border-blue-200'}`}>
+                        <div className={`relative group rounded-[56px] border-4 transition-all aspect-[3/4] flex flex-col items-center justify-center overflow-hidden bg-white shadow-2xl ${selectedAcc ? 'border-blue-500 ring-8 ring-blue-50' : 'border-dashed border-blue-100'}`}>
                             {selectedAcc ? (
                                 <div className="w-full h-full relative">
                                     <Image
                                         src={selectedAcc.image || selectedAcc.realProduct?.image || ""}
                                         alt="Selected Acc"
                                         fill
-                                        className="object-cover"
+                                        className="object-cover transition-transform duration-700 group-hover:scale-110"
                                         unoptimized
                                     />
-                                    <div className="absolute inset-0 bg-black/5 group-hover:bg-black/20 transition-colors" />
-                                    <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-2.5 bg-white/90 rounded-full text-stone-500 hover:text-red-500 shadow-lg transition-all z-10"><X size={20} /></button>
-                                    <div className="absolute bottom-8 inset-x-8 text-center z-10">
-                                        <span className="bg-blue-500 text-white px-6 py-2.5 rounded-full text-sm font-black shadow-lg uppercase tracking-wider">액세서리 큐레이션</span>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <button onClick={() => setSelectedAcc(null)} className="absolute top-6 right-6 p-3 bg-white/90 backdrop-blur-md rounded-full text-stone-500 hover:text-red-500 shadow-xl transition-all z-10 active:scale-95"><X size={20} /></button>
+                                    <div className="absolute bottom-10 inset-x-10 text-center z-10">
+                                        <span className="bg-blue-500 text-white px-8 py-3 rounded-full text-sm font-black shadow-xl uppercase tracking-[0.2em] backdrop-blur-sm border border-white/20">액세서리</span>
                                     </div>
                                 </div>
                             ) : (
-                                <label className="w-full h-full flex flex-col items-center justify-center p-8 cursor-pointer hover:bg-blue-50/50 transition-colors">
+                                <label className="w-full h-full flex flex-col items-center justify-center p-12 cursor-pointer hover:bg-blue-50/30 transition-all group">
                                     <input type="file" className="hidden" onChange={(e) => handleItemUpload('acc', e)} accept="image/*" />
-                                    <div className="w-20 h-20 rounded-3xl bg-blue-50 flex items-center justify-center text-blue-500 mb-6 group-hover:scale-110 transition-transform"><Wand2 size={40} /></div>
-                                    <p className="font-black text-[#5d4d3d] text-2xl mb-2">액세서리 큐레이션</p>
-                                    <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium">아래에서 선택하거나<br/>클릭해서 직접 업로드</p>
+                                    <div className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mb-8 group-hover:scale-110 group-hover:bg-blue-100 transition-all border border-blue-100 shadow-inner"><Wand2 size={48} /></div>
+                                    <p className="font-black text-[#5d4d3d] text-2xl mb-3">소품 선택</p>
+                                    <p className="text-base text-[#8b7355] text-center leading-relaxed font-medium opacity-70">추천 소품을 고르거나<br />액세서리 사진 업로드</p>
                                 </label>
                             )}
                         </div>
                     </div>
 
-                    <div className="w-full flex flex-col items-center gap-6 py-8 bg-white/40 backdrop-blur-xl rounded-[40px] border border-[#fff4e6] shadow-xl">
-                        <div className="w-full px-8 space-y-4">
-                            <label className="block text-sm font-bold text-[#8b7355] text-center mb-2 flex items-center justify-center gap-2">
-                                <Sparkles size={14} className="text-pink-500" /> 추가 요청사항이 있으신가요?
+                    <div className="w-full flex flex-col items-center gap-8 py-10 bg-white/60 backdrop-blur-xl rounded-[40px] border border-[#fff4e6] shadow-xl relative overflow-hidden">
+                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-100/20 rounded-full blur-2xl -z-10 translate-x-1/2 translate-y-1/2" />
+                        <div className="w-full px-10 space-y-4">
+                            <label className="block text-sm font-bold text-[#8b7355] text-center mb-2 flex items-center justify-center gap-2 uppercase tracking-widest opacity-70">
+                                <Sparkles size={14} className="text-pink-500" /> 추가 요청사항
                             </label>
-                            <input type="text" value={userRequest} onChange={(e) => setUserRequest(e.target.value)} placeholder="예: 조금 더 화려하게 해주세요" className="w-full px-6 py-4 rounded-full border-2 border-white bg-white/50 focus:border-pink-300 outline-none text-center text-[#2d241a] font-medium transition-all shadow-inner" />
+                            <input type="text" value={userRequest} onChange={(e) => setUserRequest(e.target.value)} placeholder="예: 조금 더 화려하게 해주세요" className="w-full px-8 py-5 rounded-full border-2 border-white bg-white/80 focus:border-pink-300 outline-none text-center text-[#2d241a] font-medium transition-all shadow-inner" />
                         </div>
-                        <div className="flex flex-row gap-4 w-full px-8">
-                            <button onClick={onReset} className="flex-1 px-4 py-4 rounded-[32px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[68px] text-sm opacity-80">다시 업로드</button>
-                            <button onClick={onSubmit} disabled={loading || (!selectedCloth && !selectedAcc)} className="flex-[2] px-6 py-5 rounded-[32px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 shadow-2xl text-lg h-[68px] flex items-center justify-center gap-2">
-                                {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span className="text-sm">{loadingStep}</span></> : <span className="truncate">{(selectedCloth || selectedAcc) ? "스타일링 적용" : "아이템 선택"}</span>}
+                        <div className="flex flex-row gap-4 w-full px-10">
+                            <button onClick={onReset} className="flex-1 px-4 py-5 rounded-[28px] font-bold text-[#8b7355] border-2 border-[#fff4e6] hover:bg-white transition-all font-outfit bg-white/50 h-[72px] text-sm active:scale-95">다시 업로드</button>
+                            <button onClick={onSubmit} disabled={loading || (!selectedCloth && !selectedAcc)} className="flex-[2] relative group/btn px-6 py-5 rounded-[28px] font-bold bg-pink-500 hover:bg-pink-400 text-white transition-all disabled:opacity-50 shadow-2xl shadow-pink-200 text-lg h-[72px] flex items-center justify-center gap-3 overflow-hidden active:scale-[0.98]">
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shimmer" />
+                                {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> <span className="text-sm font-medium">{loadingStep}</span></> : <span className="truncate">{(selectedCloth || selectedAcc) ? "피팅하기" : "아이템을 골라주세요"}</span>}
                             </button>
                         </div>
-                        <label className="flex items-center gap-3 cursor-pointer group py-2 px-6 rounded-full hover:bg-white/40 transition-all border border-transparent hover:border-pink-100">
+                        <label className="flex items-center gap-3 cursor-pointer group py-2 px-8 rounded-full hover:bg-white/60 transition-all border border-transparent hover:border-pink-100/50">
                             <input type="checkbox" checked={keepBackground} onChange={(e) => setKeepBackground(e.target.checked)} className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 transition-all cursor-pointer accent-pink-500" />
                             <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-sm">원본 사진 배경 유지하기</span>
                         </label>
