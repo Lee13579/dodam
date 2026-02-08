@@ -122,8 +122,8 @@ export async function getNaverTrendingKeywords(): Promise<string[]> {
         });
 
         // 가장 인기 있는 그룹의 키워드들과 고유 키워드 조합 반환
-        const topKeywords = sortedResults.flatMap(r => r.keyword);
-        return topKeywords.length > 0 ? topKeywords.slice(0, 10) : FALLBACK_KEYWORDS;
+        const topKeywords = sortedResults.flatMap(r => r.keyword || []);
+        return topKeywords.length > 0 ? topKeywords.filter(k => !!k).slice(0, 10) : FALLBACK_KEYWORDS;
 
     } catch (error) {
         console.error("Naver DataLab Error:", error);
@@ -196,7 +196,7 @@ export async function getRegionalRanking(): Promise<RegionRank[]> {
             const totalRatio = group.data.reduce((acc, curr) => acc + (curr.ratio || 0), 0);
             return {
                 region: group.title,
-                keywords: group.keyword,
+                keywords: Array.isArray(group.keyword) ? group.keyword : [],
                 ratio: totalRatio
             };
         }).sort((a, b) => b.ratio - a.ratio);

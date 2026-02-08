@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Star, Share2, Heart, ExternalLink, MessageCircle, Dog, Coffee, Clock, Check } from 'lucide-react';
+import { X, MapPin, Share2, ExternalLink, MessageCircle, Dog, Coffee, Clock, Check } from 'lucide-react';
 import Image from 'next/image';
 
 interface Place {
@@ -79,9 +79,6 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                                     <button className="bg-black/20 backdrop-blur-md p-2 rounded-full hover:bg-black/40 transition-colors">
                                         <Share2 size={20} className="text-white" />
                                     </button>
-                                    <button className="bg-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
-                                        <Heart size={20} className="text-[#ee2b6c] fill-[#ee2b6c]" />
-                                    </button>
                                 </div>
                             </div>
 
@@ -105,24 +102,23 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                             </div>
                         </div>
 
-                        {/* 2. Tabs */}
-                        <div className="flex border-b border-gray-100 px-6 sticky top-0 bg-white/95 backdrop-blur z-10">
+                        {/* 2. Tabs - Minimalist Style */}
+                        <div className="flex border-b border-stone-100 px-8 sticky top-0 bg-white/95 backdrop-blur-xl z-10">
                             {[
-                                { id: 'about', label: '소개' },
-                                { id: 'reviews', label: `리뷰 (${place.reviewCount || 0})` },
-                                { id: 'location', label: '위치' },
+                                { id: 'about', label: '장소 소개' },
+                                { id: 'location', label: '찾아가는 길' },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as 'about' | 'reviews' | 'location')}
-                                    className={`py-4 px-4 text-sm font-bold relative transition-colors ${activeTab === tab.id ? 'text-[#1b0d12]' : 'text-gray-400 hover:text-gray-600'
+                                    onClick={() => setActiveTab(tab.id as 'about' | 'location')}
+                                    className={`py-5 px-4 text-sm font-black relative transition-all ${activeTab === tab.id ? 'text-[#ee2b6c]' : 'text-stone-300 hover:text-stone-500'
                                         }`}
                                 >
                                     {tab.label}
                                     {activeTab === tab.id && (
                                         <motion.div
                                             layoutId="activeTab"
-                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ee2b6c]"
+                                            className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#ee2b6c] rounded-t-full"
                                         />
                                     )}
                                 </button>
@@ -130,7 +126,7 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                         </div>
 
                         {/* 3. Content Area */}
-                        <div className="flex-1 overflow-y-auto p-8 bg-[#FAFAFA]">
+                        <div className="flex-1 overflow-y-auto p-8 bg-white space-y-12 pb-40">
                             <AnimatePresence mode="wait">
                                 {activeTab === 'about' && (
                                     <motion.div
@@ -138,147 +134,127 @@ export default function TravelDetail({ place, onClose }: TravelDetailProps) {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
-                                        className="space-y-8"
+                                        className="space-y-12"
                                     >
-                                        {/* Rating Summary */}
-                                        <div className="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                                            <div className="flex flex-col items-center justify-center pl-2 pr-6 border-r border-gray-100">
-                                                <span className="text-3xl font-black text-[#1b0d12]">{place.rating || 4.8}</span>
-                                                <div className="flex gap-0.5 mb-1">
-                                                    {[1, 2, 3, 4, 5].map(i => <Star key={i} size={10} className="fill-yellow-400 text-yellow-400" />)}
-                                                </div>
-                                                <span className="text-[10px] text-gray-400 font-bold">{place.reviewCount || 128} reviews</span>
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-                                                    <span>청결도</span>
-                                                    <div className="flex-1 mx-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-green-400 w-[95%]" />
-                                                    </div>
-                                                    <span>4.9</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-                                                    <span>서비스</span>
-                                                    <div className="flex-1 mx-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-blue-400 w-[92%]" />
-                                                    </div>
-                                                    <span>4.8</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-xs font-bold text-gray-500">
-                                                    <span>위치</span>
-                                                    <div className="flex-1 mx-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-purple-400 w-[88%]" />
-                                                    </div>
-                                                    <span>4.5</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         {/* Description */}
-                                        <div>
-                                            <h3 className="text-lg font-bold text-[#1b0d12] mb-3">숙소 소개</h3>
-                                            <p className="text-gray-500 leading-relaxed text-sm font-medium">
-                                                {place.description || `반려견과 함께 편안한 휴식을 즐길 수 있는 ${place.category || '공간'}입니다. 넓은 마당과 쾌적한 객실, 그리고 반려동물을 위한 다양한 편의시설이 준비되어 있어 최고의 추억을 만들 수 있습니다. 주변 산책로를 따라 걸으며 자연을 느껴보세요.`}
+                                        <div className="space-y-4">
+                                            <h3 className="text-xl font-black text-[#2D241A] flex items-center gap-2">
+                                                <div className="w-1.5 h-6 bg-[#ee2b6c] rounded-full" />
+                                                에디터 노트
+                                            </h3>
+                                            <p className="text-stone-500 leading-relaxed text-base font-medium break-keep">
+                                                {place.description || `반려견과 함께하는 특별한 하루를 위한 완벽한 ${place.category || '공간'}입니다. 세심하게 배려된 시설과 탁 트인 공간에서 아이와 함께 잊지 못할 추억을 만들어보세요. 도담이 엄선한 프리미엄 스팟입니다.`}
                                             </p>
                                         </div>
 
-                                        {/* Features */}
-                                        <div>
-                                            <h3 className="text-lg font-bold text-[#1b0d12] mb-4">편의 시설</h3>
-                                            <div className="grid grid-cols-2 gap-3">
+                                        {/* Refined Pet Amenities */}
+                                        <div className="space-y-6">
+                                            <h3 className="text-xl font-black text-[#2D241A] flex items-center gap-2">
+                                                <div className="w-1.5 h-6 bg-[#ee2b6c] rounded-full" />
+                                                반려견 편의시설
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-4">
                                                 {[
-                                                    { label: '무료 와이파이', icon: Check },
-                                                    { label: '반려견 운동장', icon: Dog },
-                                                    { label: '조식 제공', icon: Coffee },
-                                                    { label: '24시간 데스크', icon: Clock },
+                                                    { label: '전용 운동장', icon: Dog, desc: '오프리쉬 자유시간' },
+                                                    { label: '펫 메뉴 제공', icon: Coffee, desc: '강아지 전용 간식' },
+                                                    { label: '웰컴 키트', icon: Check, desc: '배변봉투/기저귀' },
+                                                    { label: '24시 케어', icon: Clock, desc: '안전한 머무름' },
                                                 ].map((feature, i) => (
-                                                    <div key={i} className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-gray-50 text-sm font-bold text-gray-600">
-                                                        <div className="p-1.5 bg-gray-50 rounded-lg text-[#ee2b6c]">
-                                                            <feature.icon size={14} />
+                                                    <div key={i} className="flex flex-col gap-3 bg-stone-50 p-5 rounded-[24px] border border-stone-100/50 hover:bg-white hover:shadow-xl hover:shadow-stone-100 transition-all group">
+                                                        <div className="w-10 h-10 bg-white rounded-xl text-[#ee2b6c] flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                                            <feature.icon size={20} />
                                                         </div>
-                                                        {feature.label}
+                                                        <div>
+                                                            <p className="text-sm font-black text-[#2D241A]">{feature.label}</p>
+                                                            <p className="text-[11px] font-bold text-stone-400">{feature.desc}</p>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     </motion.div>
                                 )}
-                                {activeTab === 'reviews' && (
-                                    <motion.div key="reviews" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-64 text-gray-400">
-                                        <MessageCircle size={32} className="mb-2 opacity-50" />
-                                        <p className="text-sm font-medium">아직 작성된 리뷰가 없습니다.</p>
-                                        <button className="mt-4 text-[#ee2b6c] text-sm font-bold hover:underline">첫 리뷰 작성하기</button>
-                                    </motion.div>
-                                )}
                                 {activeTab === 'location' && (
-                                    <motion.div key="location" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-64 bg-gray-200 rounded-3xl flex items-center justify-center text-gray-400 font-bold overflow-hidden relative">
-                                        {/* Placeholder Map Image */}
-                                        <Image
-                                            src="https://assets.website-files.com/5a5bd2789139820001552a8a/5a676b2bd76ed30001886133_map-placeholder.jpg"
-                                            alt="Map"
-                                            fill
-                                            className="object-cover opacity-50"
-                                            unoptimized
-                                        />
-                                        <div className="absolute flex flex-col items-center">
-                                            <MapPin size={32} className="text-[#ee2b6c] mb-2 drop-shadow-md" />
-                                            <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-xl shadow-sm text-xs">{place.address}</span>
+                                    <motion.div key="location" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                                         <div className="h-64 bg-stone-100 rounded-[32px] flex items-center justify-center text-stone-400 font-bold overflow-hidden relative border border-stone-200">
+                                            <Image
+                                                src="https://assets.website-files.com/5a5bd2789139820001552a8a/5a676b2bd76ed30001886133_map-placeholder.jpg"
+                                                alt="Map"
+                                                fill
+                                                className="object-cover opacity-50 grayscale"
+                                                unoptimized
+                                            />
+                                            <div className="absolute flex flex-col items-center">
+                                                <div className="w-10 h-10 bg-[#ee2b6c] rounded-full flex items-center justify-center shadow-xl mb-2 animate-bounce">
+                                                    <MapPin size={20} className="text-white" />
+                                                </div>
+                                                <span className="bg-white px-4 py-2 rounded-2xl shadow-xl text-xs font-black text-[#2D241A]">{place.address}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-stone-50 p-6 rounded-[28px] border border-stone-100">
+                                            <p className="text-xs font-black text-stone-400 mb-2 uppercase tracking-widest">도로명 주소</p>
+                                            <p className="text-sm font-bold text-[#2D241A] leading-relaxed">{place.address}</p>
                                         </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
                         </div>
 
-                        {/* 4. Footer CTA */}
-                        <div className="px-8 py-5 border-t border-gray-100 bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.03)] flex flex-col gap-3">
-                            <div className="flex items-center justify-between">
+                        {/* 4. Fixed Bottom Action Bar - Premium High-Conversion Design */}
+                        <div className="absolute bottom-0 left-0 right-0 p-8 bg-white/80 backdrop-blur-xl border-t border-stone-100 flex flex-col gap-4 z-30">
+                            <div className="flex items-center justify-between px-2">
                                 <div className="flex flex-col">
                                     {place.price ? (
                                         <>
-                                            {place.originalPrice && (
-                                                <span className="text-xs text-gray-300 line-through font-bold">₩{place.originalPrice.toLocaleString()}</span>
-                                            )}
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-2xl font-black text-[#1b0d12]">₩{place.price.toLocaleString()}</span>
-                                                <span className="text-xs font-bold text-gray-400">/ 박</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-2xl font-black text-[#2D241A]">₩{place.price.toLocaleString()}</span>
+                                                <span className="text-xs font-bold text-stone-400">/ 1박 기준</span>
                                             </div>
+                                            {place.originalPrice && (
+                                                <span className="text-xs text-[#ee2b6c] font-black">정가 대비 {Math.round((place.originalPrice - place.price) / place.originalPrice * 100)}% 할인 중</span>
+                                            )}
                                         </>
                                     ) : (
                                         <div className="flex flex-col">
-                                            <span className="text-xs font-bold text-gray-400">주소</span>
-                                            <span className="text-sm font-bold text-[#1b0d12] line-clamp-1">{place.address}</span>
+                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-tighter mb-0.5">Location</span>
+                                            <span className="text-sm font-black text-[#2D241A] line-clamp-1">{place.address?.split(' ')[1] || '정보 없음'} 지역</span>
                                         </div>
                                     )}
                                 </div>
-                                {place.bookingUrl && (
-                                    <a
-                                        href={place.bookingUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="bg-[#1b0d12] hover:bg-black text-white px-6 py-3.5 rounded-2xl font-bold shadow-sm transition-all flex items-center gap-2 text-sm"
-                                    >
-                                        <ExternalLink size={14} />
-                                        예약하기
-                                    </a>
-                                )}
+                                
+                                <button className="flex flex-col items-center gap-1 group">
+                                    <div className="w-10 h-10 rounded-full border border-stone-100 flex items-center justify-center group-hover:bg-stone-50 transition-colors">
+                                        <Share2 size={16} className="text-stone-400" />
+                                    </div>
+                                    <span className="text-[9px] font-black text-stone-400">공유</span>
+                                </button>
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    const params = new URLSearchParams({
-                                        region: place.address?.split(' ')[0] || '',
-                                        placeId: place.id,
-                                        lat: place.lat?.toString() || '',
-                                        lng: place.lng?.toString() || '',
-                                        autoGenerate: 'true'
-                                    });
-                                    window.location.href = `/travel/map?${params.toString()}`;
-                                }}
-                                className="w-full bg-[#ee2b6c] hover:bg-[#d01b55] text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-200 hover:shadow-pink-300 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
-                            >
-                                <span className="text-lg">✨</span>
-                                이 장소 포함해서 AI 일정 짜기
-                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        const params = new URLSearchParams({
+                                            region: place.address?.split(' ')[0] || '',
+                                            placeId: place.id,
+                                            lat: place.lat?.toString() || '',
+                                            lng: place.lng?.toString() || '',
+                                            autoGenerate: 'true'
+                                        });
+                                        window.location.href = `/travel/map?${params.toString()}`;
+                                    }}
+                                    className="flex-1 bg-white border-2 border-[#ee2b6c] text-[#ee2b6c] py-4 rounded-2xl font-black shadow-sm hover:bg-pink-50 transition-all flex items-center justify-center gap-2 text-sm"
+                                >
+                                    AI 일정에 담기
+                                </button>
+                                <a
+                                    href={place.bookingUrl || `https://www.agoda.com/ko-kr/search?city=${place.address?.split(' ')[0]}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-[1.5] bg-[#ee2b6c] hover:bg-[#d01b55] text-white py-4 rounded-2xl font-black shadow-xl shadow-pink-200 hover:shadow-pink-300 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 text-sm"
+                                >
+                                    {place.category?.includes('호텔') || place.category?.includes('숙소') ? '아고다 최저가 예약' : '지금 예약하기'}
+                                </a>
+                            </div>
                         </div>
                     </motion.div>
                 </>

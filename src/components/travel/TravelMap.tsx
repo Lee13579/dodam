@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, CheckCircle2, Heart, Footprints, Luggage } from 'lucide-react';
+import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, CheckCircle2, Footprints, Luggage, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface Place {
@@ -139,22 +139,22 @@ const TravelMap: React.FC<TravelMapProps> = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white p-5 rounded-[28px] border border-white shadow-sm flex flex-col items-center justify-center text-center">
                                     <div className="w-10 h-10 bg-pink-50 rounded-2xl flex items-center justify-center text-[#ee2b6c] mb-2">
-                                        <Heart size={20} fill="currentColor" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">건강 점수</span>
-                                    <div className="flex items-baseline gap-0.5">
-                                        <span className="text-2xl font-black text-[#1b0d12]">98</span>
-                                        <span className="text-[10px] font-bold text-gray-300">/100</span>
-                                    </div>
-                                </div>
-                                <div className="bg-white p-5 rounded-[28px] border border-white shadow-sm flex flex-col items-center justify-center text-center">
-                                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 mb-2">
                                         <Footprints size={20} />
                                     </div>
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">산책 거리</span>
                                     <div className="flex items-baseline gap-0.5">
                                         <span className="text-2xl font-black text-[#1b0d12]">{(itinerary.length * 1.2).toFixed(1)}</span>
                                         <span className="text-[10px] font-bold text-gray-300">km</span>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-5 rounded-[28px] border border-white shadow-sm flex flex-col items-center justify-center text-center">
+                                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 mb-2">
+                                        <Clock size={20} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">예상 소요</span>
+                                    <div className="flex items-baseline gap-0.5">
+                                        <span className="text-2xl font-black text-[#1b0d12]">{itinerary.length * 2}</span>
+                                        <span className="text-[10px] font-bold text-gray-300">시간</span>
                                     </div>
                                 </div>
                             </div>
@@ -270,24 +270,16 @@ const TravelMap: React.FC<TravelMapProps> = ({
 
                                         {/* Image Area */}
                                         {place.imageUrl && (
-                                            <div className="w-full h-32 mb-4 rounded-2xl overflow-hidden relative group-hover:shadow-md transition-all bg-gray-100">
-                                                <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                                {place.originalPrice && place.price && (
-                                                    <div className="absolute top-2 left-2 bg-[#ee2b6c] text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
-                                                        {Math.round((place.originalPrice - place.price) / place.originalPrice * 100)}% OFF
-                                                    </div>
-                                                )}
-
-                                                {place.rating && (
-                                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg shadow-sm">
-                                                        <span className="text-[10px]">⭐</span>
-                                                        <span className="text-[10px] font-black text-[#1b0d12]">{place.rating}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                                                                                <div className="w-full h-32 mb-4 rounded-2xl overflow-hidden relative group-hover:shadow-md transition-all bg-gray-100">
+                                                                                                    <img src={place.imageUrl} alt={place.name} className="w-full h-full object-cover" />
+                                                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            
+                                                                                                    {place.originalPrice && place.price && (
+                                                                                                        <div className="absolute top-2 left-2 bg-[#ee2b6c] text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg">
+                                                                                                            {Math.round((place.originalPrice - place.price) / place.originalPrice * 100)}% OFF
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>                                        )}
 
                                         {/* Price or Action */}
                                         {place.price ? (

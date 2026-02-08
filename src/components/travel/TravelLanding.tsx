@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Calendar, Plus, Minus, ChevronLeft, ChevronRight, Dog, Heart, Star, Sparkles } from 'lucide-react';
+import { Search, MapPin, Calendar, Plus, Minus, ChevronLeft, ChevronRight, Dog, Sparkles } from 'lucide-react';
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Image from 'next/image';
@@ -669,14 +669,7 @@ export default function TravelLanding() {
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80" />
                                             {section.hasCourse && idx === 0 && <div className="absolute top-5 left-5 z-10"><span className="bg-[#ee2b6c] text-white text-[10px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-xl">도담 추천 코스</span></div>}
-                                            <button className="absolute top-5 right-5 size-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white"><Heart size={18} /></button>
                                             <div className="absolute bottom-6 left-6 right-6 text-white z-10">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <div className="flex items-center gap-1 bg-yellow-400/20 backdrop-blur-md px-2 py-1 rounded-lg">
-                                                        <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                                                        <span className="text-[10px] font-black text-yellow-400">{item.rating}</span>
-                                                    </div>
-                                                </div>
                                                 <h4 className={`font-black group-hover:text-pink-200 transition-colors mb-1 ${section.layout === 'wide' ? 'text-2xl' : 'text-xl'}`}>{section.hasCourse && idx === 0 ? `${item.title} & 산책` : item.title}</h4>
                                                 <p className="text-xs text-white/70 font-bold flex items-center gap-1"><MapPin size={10} className="text-pink-400" /> {item.address}</p>
                                             </div>

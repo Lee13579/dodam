@@ -20,7 +20,7 @@ export async function GET() {
             try {
                 const regionalRankings = await getRegionalRanking();
                 regionKeywords = regionalRankings.length > 0
-                    ? regionalRankings[0].keywords.slice(0, 2)
+                    ? regionalRankings[0].keywords.slice(0, 3)
                     : [];
             } catch (e) {
                 console.warn("Failed to fetch regional ranking", e);
@@ -29,17 +29,18 @@ export async function GET() {
             // 2. Get General Trending Keywords
             let trendKeywords: string[] = [];
             try {
-                trendKeywords = (await getNaverTrendingKeywords()).slice(0, 8);
+                trendKeywords = (await getNaverTrendingKeywords()).slice(0, 10);
             } catch (e) {
                 console.warn("Failed to fetch trending keywords", e);
-                trendKeywords = ["애견동반 여행", "강아지 운동장"]; // Fallback
+                trendKeywords = ["애견동반 여행", "강아지 운동장", "반려견 동반 카페"]; // Fallback
             }
 
-            // 3. Combine and Limit (Max 6 keywords to prevent timeout)
+            // 3. Combine and Limit
             const finalKeywords = [
                 ...regionKeywords,
                 ...trendKeywords
-            ].slice(0, 6);
+            ].filter(k => typeof k === 'string' && k.length > 0)
+             .slice(0, 10);
 
             const results = [];
 
@@ -49,12 +50,14 @@ export async function GET() {
                 const chunk = finalKeywords.slice(i, i + CHUNK_SIZE);
 
                 const chunkResults = await Promise.all(chunk.map(async (keyword) => {
+                    if (!keyword) return null;
+                    
                     try {
                         // Append "애견동반" for better accuracy
                         const searchStyle = keyword.includes('애견') || keyword.includes('반려') ? keyword : `${keyword} 애견동반`;
 
-                        // Fetch max 2 places per keyword
-                        const places = await searchNaverPlaces(searchStyle, 2);
+                        // Fetch max 3 places per keyword to ensure variety
+                        const places = await searchNaverPlaces(searchStyle, 3);
 
                         // Pick the best place (pet friendly preferred)
                         const bestPlace = places.find(p => p.isPetFriendly) || places[0];

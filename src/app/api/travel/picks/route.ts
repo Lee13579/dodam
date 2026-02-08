@@ -47,9 +47,9 @@ export async function GET(req: Request) {
             if (isLocationAvailable) {
                 // Note: Real PostGIS would be better, but for small datasets we can sort by simple diff
                 // Here we fetch a slightly larger pool and sort in JS, or use a RPC if DB supports it.
-                queryBuilder = queryBuilder.limit(50);
+                queryBuilder = queryBuilder.limit(100);
             } else {
-                queryBuilder = queryBuilder.limit(10);
+                queryBuilder = queryBuilder.limit(20);
             }
 
             const { data: existingPlaces, error: fetchError } = await queryBuilder;
@@ -62,28 +62,39 @@ export async function GET(req: Request) {
                     const distB = Math.pow(parseFloat(b.lat) - parseFloat(lat!), 2) + Math.pow(parseFloat(b.lng) - parseFloat(lng!), 2);
                     return distA - distB;
                 }).slice(0, 10);
+            } else {
+                finalPlaces = finalPlaces.slice(0, 10);
             }
 
-            if (!fetchError && finalPlaces.length >= 8) {
+            // [NEW] Mirror images for DB items too, just in case they are old or external
+            const mirroredFinalPlaces = await Promise.all(finalPlaces.map(async (p) => {
+                if (p.imageUrl && !p.imageUrl.startsWith('/') && !p.imageUrl.includes('supabase.co')) {
+                    const mirrored = await mirrorExternalImage(p.imageUrl);
+                    return { ...p, imageUrl: mirrored };
+                }
+                return p;
+            }));
+
+            if (!fetchError && mirroredFinalPlaces.length >= 10) {
                 results.push({
                     ...theme,
                     title: isLocationAvailable && theme.id === 'resort' ? `내 주변 호캉스 📍` : theme.title,
-                    items: finalPlaces
+                    items: mirroredFinalPlaces
                 });
                 continue;
             }
 
             // 2. Fallback: Fetch from Naver if not enough data in DB
-            console.log(`Insufficient data for ${theme.id}. Fetching from Naver...`);
+            console.log(`Insufficient data for ${theme.id} (${finalPlaces.length}/10). Fetching from Naver...`);
             let allPlaces: any[] = [];
             // If location is available, inject neighborhood into query
             const searchQueryPrefix = isLocationAvailable && theme.id === 'resort' ? '내 주변 ' : '';
 
-            for (const query of theme.queries.slice(0, 2)) {
-                if (allPlaces.length >= 10) break;
+            for (const query of theme.queries.slice(0, 3)) {
+                if (allPlaces.length >= 15) break;
                 const places = await searchNaverPlaces(searchQueryPrefix + query, 10);
                 allPlaces = [...allPlaces, ...places];
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 200));
             }
 
             const processedItems = await Promise.all(

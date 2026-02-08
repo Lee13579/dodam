@@ -44,13 +44,36 @@ export interface TransformedPlace {
   isPetFriendly?: boolean;
 }
 
-// Helper: Scrape Naver Place for OG Image (High Quality)
-async function scrapeNaverPlaceImage(query: string): Promise<string | null> {
-  // Note: Scraping search results directly is flaky.
-  // For now, we will rely on the Image Search API with stricter filters.
-  // If user explicitly wants "Place" photos only, we'd need the Place ID first, 
-  // but the Search API doesn't give it reliably.
-  return null;
+// Helper: Scrape Naver Place for OG Image (High Quality Official Photo)
+async function scrapeNaverPlaceImage(placeUrl: string): Promise<string | null> {
+  if (!placeUrl || !placeUrl.includes('naver.com')) return null;
+
+  try {
+    // Convert to mobile URL for faster/simpler scraping if needed, 
+    // but OG tags are consistent across both.
+    const response = await fetch(placeUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+      }
+    });
+
+    if (!response.ok) return null;
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Naver Smart Place typically uses og:image for the official representative photo
+    const ogImage = $('meta[property="og:image"]').attr('content');
+    
+    // Filter out some default Naver icons if they appear
+    if (ogImage && !ogImage.includes('static.naver.net') && !ogImage.includes('map_common')) {
+      return ogImage;
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn(`Scraping failed for ${placeUrl}:`, error);
+    return null;
+  }
 }
 
 export async function searchNaverImages(query: string, context?: string): Promise<string | null> {
@@ -60,7 +83,8 @@ export async function searchNaverImages(query: string, context?: string): Promis
   if (!clientId || !clientSecret) return null;
 
   try {
-    const refinedQuery = query;
+    // Add "대표사진" keyword to increase chance of getting official shots
+    const refinedQuery = `${query} 대표사진`;
 
     const response = await fetch(`${NAVER_IMAGE_URL}?query=${encodeURIComponent(refinedQuery)}&display=5&sort=sim&filter=medium`, {
       method: 'GET',
@@ -81,7 +105,7 @@ export async function searchNaverImages(query: string, context?: string): Promis
 
     // Filter logic: Prefer .jpg, avoid blog post thumbnails if possible
     const bestItem = data.items.find((item: any) =>
-      (item.link.includes('.jpg') || item.link.includes('.png'))
+      item.link && (item.link.includes('.jpg') || item.link.includes('.png'))
     ) || data.items[0];
 
     return bestItem?.link || null;
@@ -116,7 +140,7 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
 
     // 데이터 변환 및 HTML 태그 제거
     const places = await Promise.all(data.items.map(async (item: NaverPlace, index: number) => {
-      const cleanTitle = item.title
+      const cleanTitle = (item.title || "")
         .replace(/<[^>]*>?/gm, '')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
@@ -124,17 +148,25 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
 
-      const [lng, lat] = proj4(KATECH, WGS84, [parseInt(item.mapx), parseInt(item.mapy)]);
+      const [lng, lat] = proj4(KATECH, WGS84, [parseInt(item.mapx || "0"), parseInt(item.mapy || "0")]);
 
-      // 1. Try Image Search API
+      // --- NEW: SMART IMAGE EXTRACTION ---
       let imgUrl = null;
-      if (index < 4) {
+      
+      // 1. Try Scraping the Official Smart Place Page (Highest Priority)
+      if (item.link) {
+        imgUrl = await scrapeNaverPlaceImage(item.link);
+      }
+      
+      // 2. Fallback to Image Search API if scraping fails
+      if (!imgUrl && index < 4) {
         imgUrl = await searchNaverImages(cleanTitle, query);
       }
 
-      const isPetFriendly = item.category.includes('반려동물') ||
-        item.category.includes('애견') ||
-        item.category.includes('반려견') ||
+      const category = item.category || "";
+      const isPetFriendly = category.includes('반려동물') ||
+        category.includes('애견') ||
+        category.includes('반려견') ||
         cleanTitle.includes('애견') ||
         cleanTitle.includes('반려견');
 
@@ -145,12 +177,12 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
         id: `naver_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 5)}`,
         name: cleanTitle,
         title: cleanTitle,
-        category: formatCategory(item.category),
-        address: item.roadAddress || item.address,
+        category: formatCategory(category),
+        address: item.roadAddress || item.address || "",
         lat: lat,
         lng: lng,
-        description: item.category,
-        link: item.link,
+        description: category,
+        link: item.link || "",
         imageUrl: imgUrl || placeholder,
         isPetFriendly: isPetFriendly
       };
@@ -166,6 +198,8 @@ export async function searchNaverPlaces(query: string, display: number = 3): Pro
 
 // 네이버 카테고리 문자열을 우리 앱의 카테고리로 단순화 및 반려견 특성 추출 (UI 노출용 한국어)
 function formatCategory(naverCategory: string): string {
+  if (!naverCategory) return '장소';
+
   if (naverCategory.includes('반려동물') || naverCategory.includes('애견') || naverCategory.includes('반려견')) {
     if (naverCategory.includes('카페')) return '애견 카페';
     if (naverCategory.includes('호텔') || naverCategory.includes('펜션') || naverCategory.includes('숙박')) return '애견 숙소';

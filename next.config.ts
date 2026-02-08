@@ -14,6 +14,22 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'shopping-phinf.pstatic.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'search.pstatic.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ldb-phinf.pstatic.net',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cdninstagram.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
       }
     ],
   },
