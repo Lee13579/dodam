@@ -115,15 +115,6 @@ export const useStylingEngine = () => {
         setRetryCount(0);
     };
 
-    const fetchRealProductForItem = async (item: SuggestedItem): Promise<SuggestedItem> => {
-        try {
-            const res = await fetch(`/api/partners?query=${encodeURIComponent(item.searchKeyword)}&start=1`);
-            const products = await res.json();
-            if (products && products.length > 0) return { ...item, realProduct: products[0] };
-            return item;
-        } catch { return item; }
-    };
-
     const handleStep1Submit = async () => {
         if (!file || !mode) return;
         setLoading(true);
@@ -142,12 +133,42 @@ export const useStylingEngine = () => {
             if (res.ok && data.concepts?.length > 0) {
                 setRecommendations(data.concepts);
                 if (data.personalColor) setPersonalColor(data.personalColor);
-                setLoadingStep("어울리는 실제 아이템을 매칭하는 중...");
-                const clothesWithReal = await Promise.all((data.suggestedClothes || []).map(fetchRealProductForItem));
-                const accWithReal = await Promise.all((data.suggestedAccessories || []).map(fetchRealProductForItem));
-                setSuggestedClothes(clothesWithReal);
-                setSuggestedAccessories(accWithReal);
+                
+                const clothes = data.suggestedClothes || [];
+                const accs = data.suggestedAccessories || [];
+                
+                setSuggestedClothes(clothes);
+                setSuggestedAccessories(accs);
                 setStep(2);
+
+                // BACKGROUND TASK: Generate AI Style Guide Images for each item
+                // We do this in parallel to populate the UI as they arrive.
+                const generateGuideImage = async (item: SuggestedItem, type: 'cloth' | 'acc') => {
+                    if (!item.visualPrompt) return;
+                    try {
+                        const gRes = await fetch("/api/generate/guide", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ 
+                                visualPrompt: item.visualPrompt,
+                                itemName: item.name
+                            })
+                        });
+                        const gData = await gRes.json();
+                        if (gRes.ok && gData.url) {
+                            if (type === 'cloth') {
+                                setSuggestedClothes(prev => prev.map(p => p.id === item.id ? { ...p, image: gData.url } : p));
+                            } else {
+                                setSuggestedAccessories(prev => prev.map(p => p.id === item.id ? { ...p, image: gData.url } : p));
+                            }
+                        }
+                    } catch (e) { console.error("Guide image gen failed:", e); }
+                };
+
+                // Kick off generation for all items (limited by concurrency if needed, but 10 is usually okay)
+                clothes.forEach((item: SuggestedItem) => generateGuideImage(item, 'cloth'));
+                accs.forEach((item: SuggestedItem) => generateGuideImage(item, 'acc'));
+
             } else throw new Error(data.details || "분석 실패");
         } catch (e: any) {
             toast.error(`분석 중 오류가 발생했습니다: ${e.message}`);
@@ -176,11 +197,11 @@ export const useStylingEngine = () => {
                         itemImages.cloth = selectedCloth.image;
                         items.push("the clothing in the second image");
                     } else {
-                        const name = selectedCloth.realProduct?.name || selectedCloth.name;
-                        if (selectedCloth.realProduct?.image) {
-                            itemImages.cloth = selectedCloth.realProduct.image;
-                            items.push(`the exact ${name} shown in the second image`);
-                        } else items.push(name);
+                        // LEGAL SAFETY: Don't pass real product images to the AI generator.
+                        // Instead, describe the product to the AI to generate a 'similar style'.
+                        const name = selectedCloth.name;
+                        const desc = selectedCloth.description;
+                        items.push(`a ${name} (${desc})`);
                         keywords.push(selectedCloth.searchKeyword || selectedCloth.name);
                     }
                 }
@@ -189,16 +210,15 @@ export const useStylingEngine = () => {
                         itemImages.acc = selectedAcc.image;
                         items.push(`the accessory in the ${itemImages.cloth ? 'third' : 'second'} image`);
                     } else {
-                        const name = selectedAcc.realProduct?.name || selectedAcc.name;
-                        if (selectedAcc.realProduct?.image) {
-                            itemImages.acc = selectedAcc.realProduct.image;
-                            items.push(`the exact ${name} shown in the ${itemImages.cloth ? 'third' : 'second'} image`);
-                        } else items.push(name);
+                        // LEGAL SAFETY: Descriptive generation instead of direct synthesis.
+                        const name = selectedAcc.name;
+                        const desc = selectedAcc.description;
+                        items.push(`a ${name} (${desc})`);
                         keywords.push(selectedAcc.searchKeyword || selectedAcc.name);
                     }
                 }
                 generationPrompt = `[VTO] precisely dress the dog in ${items.join(" and ")}`;
-                currentShoppingTip = "의류와 액세서리의 조화가 아주 훌륭해요. 실루엣과 디테일을 꼼꼼하게 표현합니다.";
+                currentShoppingTip = "아이의 매력을 살려주는 트렌디한 아이템들을 매칭하여 화보를 생성합니다.";
             } else {
                 if (style === 'custom') {
                     generationPrompt = keepBackground ? `[VTO] ${customPrompt}` : `[PICTORIAL] ${customPrompt}`;

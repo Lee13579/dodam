@@ -63,18 +63,15 @@ export async function GET(req: NextRequest) {
         tasks.push(Promise.resolve(MOCK_LINKPRICE_PRODUCTS.filter(p => p.name.toLowerCase().includes(cleanQuery.toLowerCase()) || true).slice(0, 2)));
 
         const allResults = await Promise.all(tasks);
-        let combinedProducts = allResults.flat();
+        const combinedProducts = allResults.flat();
 
         // Fallback if no results
         if (combinedProducts.length === 0) {
             return NextResponse.json(MOCK_PRODUCTS);
         }
 
-        // Interleave results to show variety (Naver, Coupang, LinkPrice, Naver, ...)
-        // This simulates a "Smart Curation" mix
-        // Simple shuffle for now, or round-robin if we had real arrays
-        combinedProducts = combinedProducts.sort(() => Math.random() - 0.5);
-
+        // KEEP RELEVANCE: Do not shuffle. Naver's 'sim' (similarity) sort is valuable.
+        // We just return them in the order they were fetched/combined.
         return NextResponse.json(combinedProducts);
 
     } catch (error) {

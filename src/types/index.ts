@@ -44,6 +44,7 @@ export interface SuggestedItem {
     name: string;
     searchKeyword: string;
     description: string;
+    visualPrompt?: string;
     image?: string;
     realProduct?: Product;
     isUserUploaded?: boolean;

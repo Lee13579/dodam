@@ -168,6 +168,15 @@ export default function FittingStage({
                             <input type="checkbox" checked={keepBackground} onChange={(e) => setKeepBackground(e.target.checked)} className="w-5 h-5 rounded-md border-2 border-pink-300 checked:bg-pink-500 transition-all cursor-pointer accent-pink-500" />
                             <span className="text-[#8b7355] font-bold group-hover:text-pink-500 transition-colors select-none text-sm">원본 사진 배경 유지하기</span>
                         </label>
+                        
+                        <div className="px-6 text-center space-y-1 pb-2">
+                            <p className="text-[11px] text-[#8b7355]/60 font-medium break-keep">
+                                ※ 결과물은 AI 가상 시뮬레이션으로, 실제 상품의 핏/색상/재질과 차이가 있을 수 있습니다.
+                            </p>
+                            <p className="text-[10px] text-[#8b7355]/40 font-medium break-keep">
+                                브랜드의 공식 연출컷이 아니며, 스타일링 참고용으로만 활용해 주세요.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -185,26 +194,31 @@ export default function FittingStage({
                         <button onClick={() => scroll(clothScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronRight size={28} strokeWidth={3} /></button>
                         <div ref={clothScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
                             {suggestedClothes.map((item) => (
-                                <button key={item.id} onClick={() => setSelectedCloth(selectedCloth?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedCloth?.id === item.id ? 'border-pink-500 ring-4 ring-pink-100' : 'border-[#fff4e6] hover:border-pink-300'}`}>
-                                    {item.realProduct?.image ? (
+                                <button key={item.id} onClick={() => setSelectedCloth(selectedCloth?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-white rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedCloth?.id === item.id ? 'border-pink-500 ring-4 ring-pink-100' : 'border-[#fff4e6] hover:border-pink-300'}`}>
+                                    {item.image || item.realProduct?.image ? (
                                         <Image
-                                            src={item.realProduct.image}
+                                            src={item.image || item.realProduct?.image || ""}
                                             alt={item.name}
                                             fill
                                             className="object-cover"
                                             unoptimized
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-stone-300">
-                                            <Shirt size={48} />
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-white p-10 text-center">
+                                            <div className="w-20 h-20 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 mb-6 shadow-inner">
+                                                <Shirt size={40} />
+                                            </div>
+                                            <h4 className="text-[#5d4d3d] text-xl font-bold mb-3 break-keep">{item.name}</h4>
+                                            <p className="text-[#8b7355] text-sm leading-relaxed opacity-70 break-keep">{item.description}</p>
                                         </div>
                                     )}
                                     {selectedCloth?.id === item.id && <div className="absolute top-6 left-6 bg-pink-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
-                                        <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>
-                                        <h4 className="text-white text-lg font-bold line-clamp-2 mb-1 leading-tight">{item.name}</h4>
-                                        <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
-                                    </div>
+                                    {(item.image || item.realProduct?.image) && (
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
+                                            <h4 className="text-white text-lg font-bold line-clamp-2 mb-1 leading-tight">{item.name}</h4>
+                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
+                                        </div>
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -222,26 +236,31 @@ export default function FittingStage({
                         <button onClick={() => scroll(accScrollRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-4 bg-white hover:bg-pink-50 text-pink-500 rounded-full shadow-xl border-2 border-pink-100 transition-all active:scale-90"><ChevronRight size={28} strokeWidth={3} /></button>
                         <div ref={accScrollRef} className="flex gap-6 overflow-x-auto pb-8 no-scrollbar scroll-smooth px-2">
                             {suggestedAccessories.map((item) => (
-                                <button key={item.id} onClick={() => setSelectedAcc(selectedAcc?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-stone-100 rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedAcc?.id === item.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-[#fff4e6] hover:border-blue-300'}`}>
-                                    {item.realProduct?.image ? (
+                                <button key={item.id} onClick={() => setSelectedAcc(selectedAcc?.id === item.id ? null : item)} className={`flex-shrink-0 w-80 aspect-[3/4] bg-white rounded-[40px] border-2 transition-all text-left group shadow-sm overflow-hidden relative ${selectedAcc?.id === item.id ? 'border-blue-500 ring-4 ring-blue-100' : 'border-[#fff4e6] hover:border-blue-300'}`}>
+                                    {item.image || item.realProduct?.image ? (
                                         <Image
-                                            src={item.realProduct.image}
+                                            src={item.image || item.realProduct?.image || ""}
                                             alt={item.name}
                                             fill
                                             className="object-cover"
                                             unoptimized
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-stone-300">
-                                            <Wand2 size={48} />
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-white p-10 text-center">
+                                            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mb-6 shadow-inner">
+                                                <Wand2 size={40} />
+                                            </div>
+                                            <h4 className="text-[#5d4d3d] text-xl font-bold mb-3 break-keep">{item.name}</h4>
+                                            <p className="text-[#8b7355] text-sm leading-relaxed opacity-70 break-keep">{item.description}</p>
                                         </div>
                                     )}
                                     {selectedAcc?.id === item.id && <div className="absolute top-6 left-6 bg-blue-500 text-white p-2 rounded-full z-10"><Check size={20} strokeWidth={3} /></div>}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
-                                        <div className="flex gap-1.5 mb-2">{item.realProduct?.mallName && <span className="bg-white/20 backdrop-blur-md text-[10px] text-white px-2.5 py-1 rounded-full font-bold">{item.realProduct.mallName}</span>}</div>
-                                        <h4 className="text-white text-lg font-bold line-clamp-2 mb-1 leading-tight">{item.name}</h4>
-                                        <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
-                                    </div>
+                                    {(item.image || item.realProduct?.image) && (
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 pt-12">
+                                            <h4 className="text-white text-lg font-bold line-clamp-2 mb-1 leading-tight">{item.name}</h4>
+                                            <p className="text-white/80 text-xs leading-snug break-keep font-medium">{item.description}</p>
+                                        </div>
+                                    )}
                                 </button>
                             ))}
                         </div>
