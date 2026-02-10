@@ -13,21 +13,29 @@ export async function POST(req: NextRequest) {
     const agodaPromise = fetchAgodaHotels(`${region} 애견동반 호텔`, 1);
     const klookPromise = fetchKlookProducts(`${region} 애견동반`, 1);
 
-    // Ask Gemini for complementary places (Cafe, Restaurant, Park) avoiding Hotels if possible
+    // Ask Gemini for a structured One-Day Course (Morning -> Lunch -> Cafe -> Dinner/Walk)
     const prompt = `
       You are a professional Pet Travel Planner in Korea.
       User Plan: ${days} trip to ${region} for ${people} people and ${dogs} dogs.
       Preferences: ${conditions}
 
-      Task: Generate 3 distinct search queries to find the best generic places using Naver Maps.
-      Focus on:
-      1. A popular pet-friendly cafe
-      2. A pet-friendly restaurant
-      3. A scenic park or walking trail
-      (Do NOT suggest Hotels, as we use Agoda for that)
+      Task: Create a perfect "One-Day Pet Travel Course" timeline.
+      - Do NOT suggest Hotels/Resorts (we already have accommodation).
+      - Focus on 3-4 key stops: Lunch, Cafe, and a Walking Spot/Activity.
+      - Ensure the route is logical for a single day.
 
-      Output ONLY a JSON array of strings (Korean).
-      Example: ["청담동 애견 카페", "도산공원 산책로", "압구정 애견동반 식당"]
+      Output ONLY a JSON array of objects:
+      [
+        {
+          "query": "Naver Search Query (e.g., '가평 애견동반 닭갈비')",
+          "type": "Lunch" | "Cafe" | "Activity" | "Dinner",
+          "time": "Suggested Time (e.g., '12:00')",
+          "title": "Display Title (e.g., '남이섬 꼬꼬춘천닭갈비')",
+          "reason": "Why this place fits the user's preference (Korean, 1 sentence)",
+          "petTip": "Specific tip for dog owners (e.g., '테라스석만 가능해요', '오프리쉬 가능', '기저귀 필수') (Korean)"
+        },
+        ...
+      ]
     `;
 
     const geminiPromise = geminiModel.generateContent(prompt);
@@ -41,6 +49,7 @@ export async function POST(req: NextRequest) {
     // 2. Transform Affiliate Data
     const affiliatePlaces: TransformedPlace[] = [];
 
+    // ... (Agoda & Klook processing remains the same) ...
     // Agoda -> TransformedPlace
     if (agodaHotels.length > 0) {
       const h = agodaHotels[0];
@@ -49,9 +58,9 @@ export async function POST(req: NextRequest) {
         name: h.name,
         title: h.name,
         category: 'Hotel',
-        address: `${region} (상세 주소 예약시 안내)`, // Agoda mock often lacks address, fill generic
-        lat: 0, // Mock lat/lng or use region center if available. 
-        lng: 0, // We will handle 0,0 in frontend or add random jitter later.
+        address: `${region} (상세 주소 예약시 안내)`,
+        lat: 0,
+        lng: 0,
         description: h.description,
         imageUrl: h.imageUrl,
         price: h.price,
@@ -59,53 +68,77 @@ export async function POST(req: NextRequest) {
         rating: h.rating,
         reviewCount: h.reviewCount,
         bookingUrl: h.url,
-        source: 'AGODA'
+        source: 'AGODA',
+        isPetFriendly: true // Explicitly mark Agoda items as pet friendly
       });
     }
 
     // Klook -> TransformedPlace
     if (klookProducts.length > 0) {
-      const k = klookProducts[0];
-      affiliatePlaces.push({
-        id: k.id,
-        name: k.title,
-        title: k.title,
-        category: 'Park', // Map Activity to Park or create new 'Activity' category? Let's use Park for 'Play'
-        address: `${region} 주요 관광지`,
-        lat: 0,
-        lng: 0,
-        description: "티켓/액티비티 특가",
-        imageUrl: k.imageUrl,
-        price: k.price,
-        originalPrice: k.originalPrice,
-        rating: k.rating,
-        reviewCount: k.reviewCount,
-        bookingUrl: k.url,
-        source: 'KLOOK'
-      });
-    }
+        const k = klookProducts[0];
+        affiliatePlaces.push({
+          id: k.id,
+          name: k.title,
+          title: k.title,
+          category: 'Activity', 
+          address: `${region} 주요 명소`,
+          lat: 0,
+          lng: 0,
+          description: "티켓/액티비티 특가",
+          imageUrl: k.imageUrl,
+          price: k.price,
+          originalPrice: k.originalPrice,
+          rating: k.rating,
+          reviewCount: k.reviewCount,
+          bookingUrl: k.url,
+          source: 'KLOOK',
+          isPetFriendly: true
+        });
+      }
 
     // 3. Process Gemini & Naver
     const response = await geminiResult.response;
     const text = response.text();
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-    let queries: string[] = [];
+    let courseItems: any[] = [];
     try {
-      queries = JSON.parse(cleanText);
+        courseItems = JSON.parse(cleanText);
+        if (!Array.isArray(courseItems)) throw new Error("Not an array");
     } catch (e) {
-      queries = [`${region} 애견 카페`, `${region} 공원`, `${region} 맛집`];
+        // Fallback
+        courseItems = [
+            { query: `${region} 애견동반 식당`, type: 'Lunch', time: '12:00', title: '현지 맛집', reason: '현지인 추천 맛집입니다.', petTip: '이동가방을 지참해주세요.' },
+            { query: `${region} 애견 카페`, type: 'Cafe', time: '14:00', title: '감성 카페', reason: '사진 찍기 좋은 카페입니다.', petTip: '실내 입장이 가능합니다.' },
+            { query: `${region} 산책로`, type: 'Activity', time: '16:00', title: '힐링 산책', reason: '여유롭게 걷기 좋아요.', petTip: '리드줄 착용 필수입니다.' }
+        ];
     }
 
-    // Naver Places API fetch
-    const searchPromises = queries.map(query => searchNaverPlaces(query, 1));
-    const searchResults = await Promise.all(searchPromises);
-    const naverPlaces: TransformedPlace[] = searchResults.flat().filter(p => p !== undefined && p.id !== undefined).map(p => ({
-      ...p,
-      source: 'NAVER' as const
-    }));
+    // Naver Places API fetch for each course item
+    // We Map Gemini's structured data to actual Naver Search results
+    const searchPromises = courseItems.map(async (item) => {
+        const results = await searchNaverPlaces(item.query, 1);
+        if (results && results.length > 0) {
+            const place = results[0];
+            return {
+                ...place,
+                source: 'NAVER' as const,
+                // Enrich with Gemini's Context
+                category: item.type, // Override category with Timeline type (Lunch, Cafe, etc)
+                description: item.reason, // Use Gemini's reason as description
+                petTip: item.petTip, // [NEW] Custom field
+                visitTime: item.time, // [NEW] Custom field
+                displayTitle: item.title // [NEW] Gemini's nice title
+            };
+        }
+        return null;
+    });
 
-    // 4. Combine: Affiliate First, then Naver
+    const searchResults = await Promise.all(searchPromises);
+    const naverPlaces = searchResults.filter(p => p !== null) as TransformedPlace[];
+
+    // 4. Combine: Affiliate First (Hotel/Ticket), then The Course
+    // We might want to insert Hotel at the end or as a "Basecamp"
     const allPlaces = [...affiliatePlaces, ...naverPlaces];
 
     // Assign generic coordinates to Affiliate items if they are 0,0 by using the first Naver item's location + offset

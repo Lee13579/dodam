@@ -42,6 +42,10 @@ export interface TransformedPlace {
   source?: 'NAVER' | 'AGODA' | 'KLOOK';
   badge?: string;
   isPetFriendly?: boolean;
+  // Timeline Extensions
+  petTip?: string;
+  visitTime?: string;
+  displayTitle?: string;
 }
 
 // Helper: Scrape Naver Place for OG Image (High Quality Official Photo)

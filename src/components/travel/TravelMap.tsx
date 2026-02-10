@@ -229,14 +229,21 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                         <div className="absolute left-[19px] top-[40px] bottom-[-24px] w-[2px] bg-[#F0F0F0] z-0" />
                                     )}
 
-                                    {/* Number Badge */}
-                                    <div className="w-10 h-10 rounded-2xl bg-white text-[#1b0d12] flex items-center justify-center text-sm font-black border border-gray-100 shadow-md shadow-gray-100 z-10 flex-shrink-0 mr-4 group-hover:bg-[#ee2b6c] group-hover:text-white group-hover:border-[#ee2b6c] transition-colors duration-300">
-                                        {index + 1}
+                                    {/* Number Badge or Time Indicator */}
+                                    <div className="flex flex-col items-center mr-4 z-10 flex-shrink-0">
+                                        <div className="w-10 h-10 rounded-2xl bg-white text-[#1b0d12] flex items-center justify-center text-sm font-black border border-gray-100 shadow-md shadow-gray-100 group-hover:bg-[#ee2b6c] group-hover:text-white group-hover:border-[#ee2b6c] transition-colors duration-300">
+                                            {index + 1}
+                                        </div>
+                                        {place.visitTime && (
+                                            <div className="mt-2 text-[10px] font-black text-[#ee2b6c] bg-pink-50 px-2 py-1 rounded-lg border border-pink-100">
+                                                {place.visitTime}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Card */}
                                     <div
-                                        className="flex-1 bg-white p-4 rounded-[28px] border border-white shadow-[0_10px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(238,43,108,0.15)] transition-all cursor-pointer group hover:-translate-y-1"
+                                        className="flex-1 bg-white p-5 rounded-[32px] border border-white shadow-[0_10px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(238,43,108,0.15)] transition-all cursor-pointer group hover:-translate-y-1"
                                         onMouseEnter={() => onHoverPlace?.(place.id)}
                                         onMouseLeave={() => onHoverPlace?.(null)}
                                         onClick={() => onSelectPlace?.(place)}
@@ -258,7 +265,9 @@ const TravelMap: React.FC<TravelMapProps> = ({
 
                                         {/* Title & Remove */}
                                         <div className="flex justify-between items-start mb-1">
-                                            <h4 className="text-base font-black text-[#1b0d12] line-clamp-1 leading-tight group-hover:text-[#ee2b6c] transition-colors">{place.name}</h4>
+                                            <h4 className="text-base font-black text-[#1b0d12] line-clamp-1 leading-tight group-hover:text-[#ee2b6c] transition-colors">
+                                                {place.displayTitle || place.name}
+                                            </h4>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); onRemovePlace(place.id, index); }}
                                                 className="text-gray-300 hover:text-red-500 transition-colors p-1 -mr-2 -mt-2 opacity-0 group-hover:opacity-100"
@@ -266,7 +275,26 @@ const TravelMap: React.FC<TravelMapProps> = ({
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
-                                        <p className="text-xs text-gray-400 font-bold mb-3 line-clamp-1">{place.address}</p>
+                                        <p className="text-[11px] text-gray-400 font-bold mb-3 line-clamp-1 flex items-center gap-1">
+                                            <MapPin size={10} /> {place.address}
+                                        </p>
+
+                                        {/* Gemini's Reason (Description) */}
+                                        {place.description && place.source === 'NAVER' && (
+                                            <div className="mb-4 text-xs font-medium text-[#5d4d3d] bg-stone-50 p-3 rounded-2xl border border-stone-100 leading-relaxed italic">
+                                                &quot;{place.description}&quot;
+                                            </div>
+                                        )}
+
+                                        {/* Pet Tip Section */}
+                                        {place.petTip && (
+                                            <div className="mb-4 flex items-center gap-2 bg-pink-50/50 p-3 rounded-2xl border border-pink-100/50">
+                                                <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-[#ee2b6c] shadow-sm">
+                                                    <Sparkles size={12} fill="currentColor" />
+                                                </div>
+                                                <p className="text-[11px] font-bold text-[#ee2b6c]">{place.petTip}</p>
+                                            </div>
+                                        )}
 
                                         {/* Image Area */}
                                         {place.imageUrl && (
