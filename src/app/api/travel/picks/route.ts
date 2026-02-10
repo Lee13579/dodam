@@ -59,7 +59,7 @@ export async function GET(req: Request) {
             let finalPlaces = existingPlaces || [];
 
             if (isLocationAvailable && finalPlaces.length > 0) {
-                finalPlaces = finalPlaces.sort((a, b) => {
+                finalPlaces = finalPlaces.sort((a: any, b: any) => {
                     const distA = Math.pow(parseFloat(a.lat) - parseFloat(lat!), 2) + Math.pow(parseFloat(a.lng) - parseFloat(lng!), 2);
                     const distB = Math.pow(parseFloat(b.lat) - parseFloat(lat!), 2) + Math.pow(parseFloat(b.lng) - parseFloat(lng!), 2);
                     return distA - distB;
@@ -69,7 +69,7 @@ export async function GET(req: Request) {
             }
 
             // [NEW] Mirror images for DB items too, just in case they are old or external
-            const mirroredFinalPlaces = await Promise.all(finalPlaces.map(async (p) => {
+            const mirroredFinalPlaces = await Promise.all(finalPlaces.map(async (p: any) => {
                 if (p.imageUrl && !p.imageUrl.startsWith('/') && !p.imageUrl.includes('supabase.co')) {
                     const mirrored = await mirrorExternalImage(p.imageUrl);
                     return { ...p, imageUrl: mirrored };
@@ -100,9 +100,9 @@ export async function GET(req: Request) {
             }
 
             const processedItems = await Promise.all(
-                Array.from(new Map(allPlaces.map(p => [p.title, p])).values())
+                Array.from(new Map(allPlaces.map((p: any) => [p.title, p])).values())
                     .slice(0, 10)
-                    .map(async place => {
+                    .map(async (place: any) => {
                         const charCodeSum = place.title.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
                         // Image is already handled by searchNaverPlaces (returns Naver URL or Placeholder)
                         // But let's verify if mirrorExternalImage is needed. 
