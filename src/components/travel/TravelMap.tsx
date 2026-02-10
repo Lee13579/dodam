@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, ArrowDown, CheckCircle2, Footprints, Luggage, Clock } from 'lucide-react';
+import { MapPin, Trash2, Calendar, PawPrint, Bot, Loader2, Stars, Sparkles, ArrowDown, CheckCircle2, Footprints, Luggage, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface Place {
@@ -22,6 +22,11 @@ export interface Place {
     bookingUrl?: string;
     source?: 'NAVER' | 'AGODA' | 'KLOOK';
     badge?: string;
+    isPetFriendly?: boolean;
+    // Timeline Extensions
+    petTip?: string;
+    visitTime?: string;
+    displayTitle?: string;
 }
 
 interface TravelMapProps {
